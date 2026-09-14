@@ -956,7 +956,8 @@ function computeStageTimeline(startTempId, rowsId){
     }
     t = holdEndT;
     if(seg.drain){
-      // 排液＝重新入液：曲線斷開留白（固定3分鐘），下一段重新從起始溫度開始算
+      // 排液＝重新入液：曲線斷開留白（固定3分鐘），新進來的水每次都是從起始溫度開始加溫，
+      // 不是接續上一段已經加熱過的溫度（水洗每一道都是排掉、進新水、缸內加溫到這一道要的溫度）
       annotations.push({ t, temp: seg.targetTemp, type:"drain", text: T("drainLabel") });
       pointGroups.push(groupPoints);
       t += DRAIN_GAP_MIN;

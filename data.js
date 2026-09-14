@@ -270,41 +270,41 @@ const BUILTIN_TEMPLATES = {
       { targetTemp:115, rampMin:75, holdMin:30, note:"保溫染色", drain:true }
     ]}
   ],
-  // 水洗每一道都是排掉舊水、換一缸新水，不是同一缸水連續加熱，所以這裡的 rampMin
-  // 不是「加熱曲線」，是「排液＋進新水＋到達目標溫度」這整個動作大概要花多久：
-  // 基本排液/進水時間抓 5 分鐘，再依跟上一道溫差、用每分鐘 3°C 換算加上去（現場設備
-  // 實際數字可能不同，之後有更準確的數字再調整這裡就好）。第一道沒有「上一道」，維持 0。
+  // 水洗每一道都是排掉舊水、新水進缸、缸內加溫到這一道要的溫度——新進的水每次都是差不多同一個
+  // 起始溫度，不是接著上一道已經加熱過的溫度繼續疊上去。所以這裡的 rampMin 是「這一道目標溫度
+  // 跟起始溫度的溫差」，用同一個每分鐘 3°C 的速率換算，同樣的目標溫度會得到同樣的爬升時間，
+  // 斜率自然一致（現場實際速率不同的話，調整下面除的那個 3 就好，全部段落一起變）。
   wash: [
     { id:"bw_a4", name:"標準水洗（A-4，7道）", startTemp:40, segs:[
       { targetTemp:40, rampMin:0,  holdMin:10, note:"溢流冷水洗", drain:true },
-      { targetTemp:40, rampMin:5,  holdMin:10, note:"酸中和", drain:true },
-      { targetTemp:65, rampMin:13, holdMin:10, note:"溫水洗", drain:true },
-      { targetTemp:90, rampMin:13, holdMin:10, note:"熱水洗", drain:true },
-      { targetTemp:98, rampMin:8,  holdMin:10, note:"皂洗", drain:true },
-      { targetTemp:65, rampMin:16, holdMin:10, note:"溫水洗", drain:true },
-      { targetTemp:40, rampMin:13, holdMin:10, note:"冷水洗", drain:true }
+      { targetTemp:40, rampMin:0,  holdMin:10, note:"酸中和", drain:true },
+      { targetTemp:65, rampMin:8,  holdMin:10, note:"溫水洗", drain:true },
+      { targetTemp:90, rampMin:17, holdMin:10, note:"熱水洗", drain:true },
+      { targetTemp:98, rampMin:19, holdMin:10, note:"皂洗", drain:true },
+      { targetTemp:65, rampMin:8,  holdMin:10, note:"溫水洗", drain:true },
+      { targetTemp:40, rampMin:0,  holdMin:10, note:"冷水洗", drain:true }
     ]},
     { id:"bw_mt", name:"MT 中溫洗淨（5道）", startTemp:50, segs:[
-      { targetTemp:50, rampMin:0,  holdMin:10, note:"酸中和", drain:true },
-      { targetTemp:70, rampMin:12, holdMin:10, note:"熱水洗", drain:true },
-      { targetTemp:70, rampMin:5,  holdMin:10, note:"熱水洗", drain:true },
-      { targetTemp:70, rampMin:5,  holdMin:10, note:"熱水洗", drain:true },
-      { targetTemp:70, rampMin:5,  holdMin:10, note:"熱水洗", drain:true }
+      { targetTemp:50, rampMin:0, holdMin:10, note:"酸中和", drain:true },
+      { targetTemp:70, rampMin:7, holdMin:10, note:"熱水洗", drain:true },
+      { targetTemp:70, rampMin:7, holdMin:10, note:"熱水洗", drain:true },
+      { targetTemp:70, rampMin:7, holdMin:10, note:"熱水洗", drain:true },
+      { targetTemp:70, rampMin:7, holdMin:10, note:"熱水洗", drain:true }
     ]},
     { id:"bw_mts", name:"MTS 中溫皂洗（5道）", startTemp:50, segs:[
-      { targetTemp:50, rampMin:0,  holdMin:10, note:"酸中和", drain:true },
-      { targetTemp:70, rampMin:12, holdMin:10, note:"熱水洗", drain:true },
-      { targetTemp:70, rampMin:5,  holdMin:10, note:"熱水洗", drain:true },
-      { targetTemp:70, rampMin:5,  holdMin:10, note:"皂洗", drain:true },
-      { targetTemp:70, rampMin:5,  holdMin:10, note:"皂洗", drain:true }
+      { targetTemp:50, rampMin:0, holdMin:10, note:"酸中和", drain:true },
+      { targetTemp:70, rampMin:7, holdMin:10, note:"熱水洗", drain:true },
+      { targetTemp:70, rampMin:7, holdMin:10, note:"熱水洗", drain:true },
+      { targetTemp:70, rampMin:7, holdMin:10, note:"皂洗", drain:true },
+      { targetTemp:70, rampMin:7, holdMin:10, note:"皂洗", drain:true }
     ]},
     { id:"bw_ht", name:"HT 高溫皂洗（6道）", startTemp:50, segs:[
       { targetTemp:50, rampMin:0,  holdMin:10, note:"酸中和", drain:true },
-      { targetTemp:60, rampMin:8,  holdMin:10, note:"溫水洗", drain:true },
-      { targetTemp:80, rampMin:12, holdMin:10, note:"熱水洗", drain:true },
-      { targetTemp:98, rampMin:11, holdMin:10, note:"皂洗", drain:true },
-      { targetTemp:80, rampMin:11, holdMin:10, note:"熱水洗", drain:true },
-      { targetTemp:60, rampMin:12, holdMin:10, note:"溫水洗", drain:true }
+      { targetTemp:60, rampMin:3,  holdMin:10, note:"溫水洗", drain:true },
+      { targetTemp:80, rampMin:10, holdMin:10, note:"熱水洗", drain:true },
+      { targetTemp:98, rampMin:16, holdMin:10, note:"皂洗", drain:true },
+      { targetTemp:80, rampMin:10, holdMin:10, note:"熱水洗", drain:true },
+      { targetTemp:60, rampMin:3,  holdMin:10, note:"溫水洗", drain:true }
     ]}
   ]
 };
