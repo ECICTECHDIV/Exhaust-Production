@@ -2,7 +2,7 @@
 // 策略：網路優先（online 時一定抓最新版本），只有離線時才退回使用快取。
 // 這樣現場有網路時更新 index.html，重新整理就能看到新版；真的沒網路時仍可用舊版開啟。
 // 技術手冊已搬到「染整工具箱」入口頁，這裡不再快取PDF檔案。
-const CACHE_NAME = "dye-work-order-v14";
+const CACHE_NAME = "dye-work-order-v15";
 const CORE_ASSETS = [
   "./index.html",
   "./data.js",
