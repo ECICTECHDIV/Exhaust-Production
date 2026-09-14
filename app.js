@@ -71,7 +71,6 @@ const state = {
   fabricType: "unmerc",
   alkaliMode: "alone",
   temp: 40,
-  sgManual: false,
   machineType: "jet",
   weightGrade: "light",
   ratioGrade: "mid",
@@ -211,7 +210,7 @@ bindSeg("alkaliModeSeg", val=>{
   document.getElementById("alkaliTspGroup").style.display = val==="tsp" ? "block":"none";
   recalcAll();
 });
-bindSeg("tempSeg", val=>{ state.temp = Number(val); updateDefaultSG(); });
+bindSeg("tempSeg", val=>{ state.temp = Number(val); updateBathReference(); });
 bindSeg("weightGradeSeg", val=>{ state.weightGrade = val; recomputeSpeed(); });
 document.getElementById("machineTypeSel").addEventListener("change", (e)=>{
   state.machineType = e.target.value;
@@ -449,7 +448,7 @@ function recalcAll(skipLookup){
   // --- 帶入浴量校正頁 ---
   document.getElementById("bathTotalWater").value = totalLiquor.toFixed(0);
   document.getElementById("bathSaltTotal").value = saltTotalKg.toFixed(2);
-  updateDefaultSG();
+  updateBathReference();
 }
 
 // 預設幾列空白範例（比照 CPB 工具的預設列數）
@@ -463,29 +462,81 @@ createWeighRow(document.getElementById("auxRows"), "", "gL", "", false);
 ["bathTotalWater","bathSaltTotal"].forEach(id=>{
   document.getElementById(id).addEventListener("input", recomputeBath);
 });
-document.getElementById("measuredSG").addEventListener("input", ()=>{
-  state.sgManual = true;
-  recomputeBath();
-});
+document.getElementById("measuredSG").addEventListener("input", recomputeBath);
 
-// 比重預設值＝假設補水完全達標時，配方電解質(芒硝/鹽)用量對應的理論比重；
-// 使用者尚未手動輸入實測值前，換算溫度或配方改變都會更新這個預設值。
-function updateDefaultSG(){
-  const saltDose = Number(document.getElementById("saltDose").value); // g/L
-  if(!state.sgManual && saltDose && !isNaN(saltDose)){
-    const sg = inverseSGFromConcentration(state.temp, saltDose);
-    if(sg !== null){
-      document.getElementById("measuredSG").value = sg.toFixed(4);
-    }
-  }
+// 小工具：把差值格式化成帶正負號的字串（正值加 + 號，方便一眼看出「比目標多還是少」）
+function fmtSigned(value, decimals){
+  const sign = value > 0 ? "+" : "";
+  return sign + fmt(value, decimals);
+}
+
+// 配方參考值（目標值）：從配方卡（布重×浴比、芒硝設定濃度）重新算一次，
+// 純顯示用，不寫進任何輸入框——跟下面可編輯的「目前水量」「已投芒硝量」（現場實際值）分開看。
+function updateBathReference(){
+  const fabricWeightKg = Number(document.getElementById("fabricWeight").value) || 0;
+  const ratio = Number(document.getElementById("liquorRatio").value) || 0;
+  const saltDose = Number(document.getElementById("saltDose").value) || 0; // g/L
+
+  const targetWater = fabricWeightKg * ratio; // L
+  const targetSaltKg = saltDose * targetWater / 1000; // kg
+  const targetSG = (saltDose > 0) ? inverseSGFromConcentration(state.temp, saltDose) : null;
+
+  document.getElementById("targetSaltDoseOut").innerHTML = saltDose>0 ? `${fmt(saltDose,1)}<small>g/L</small>` : "–";
+  document.getElementById("targetSaltTotalOut").innerHTML = targetSaltKg>0 ? `${fmt(targetSaltKg,1)}<small>kg</small>` : "–";
+  document.getElementById("targetRatioOut").textContent = ratio>0 ? `1 : ${fmt(ratio,0)}` : "–";
+  document.getElementById("targetWaterOut").innerHTML = targetWater>0 ? `${fmt(targetWater,0)}<small>L</small>` : "–";
+  document.getElementById("targetSGOut").textContent = targetSG!==null ? targetSG.toFixed(4) : "–";
+
   recomputeBath();
 }
 
 function recomputeBath(){
-  const totalWater = Number(document.getElementById("bathTotalWater").value) || 0;
-  const saltTotalKg = Number(document.getElementById("bathSaltTotal").value) || 0;
-  const saltDose = Number(document.getElementById("saltDose").value) || 0; // g/L，配方卡設定的目標電解質濃度
-  const sg = Number(document.getElementById("measuredSG").value);
+  const fabricWeightKg = Number(document.getElementById("fabricWeight").value) || 0;
+  const ratio = Number(document.getElementById("liquorRatio").value) || 0;
+  const saltDose = Number(document.getElementById("saltDose").value) || 0; // g/L，配方卡設定的目標芒硝濃度
+  const targetWater = fabricWeightKg * ratio; // L，配方目標總水量
+  const targetSaltKg = saltDose * targetWater / 1000; // kg，配方目標芒硝總量
+
+  const totalWater = Number(document.getElementById("bathTotalWater").value) || 0; // 現場實際總水量
+  const saltTotalKg = Number(document.getElementById("bathSaltTotal").value) || 0; // 現場實際已投芒硝量
+  const sg = Number(document.getElementById("measuredSG").value); // 比重計實測值（手動輸入，無預設）
+
+  // --- 目前水量／已投芒硝量：跟配方目標的差異標示（正值＝比配方多，負值＝比配方少）---
+  const waterDiffEl = document.getElementById("bathTotalWaterDiff");
+  if(document.getElementById("bathTotalWater").value === "" || targetWater<=0){
+    waterDiffEl.textContent = "";
+    waterDiffEl.className = "note";
+  }else{
+    const waterDiff = totalWater - targetWater;
+    waterDiffEl.className = "note";
+    waterDiffEl.textContent = (state.lang === "en" ? "vs recipe target: " : "較配方目標：") + fmtSigned(waterDiff,0) + " L";
+  }
+  const saltDiffEl = document.getElementById("bathSaltTotalDiff");
+  if(document.getElementById("bathSaltTotal").value === "" || targetSaltKg<=0){
+    saltDiffEl.textContent = "";
+    saltDiffEl.className = "note";
+  }else{
+    const saltDiff = saltTotalKg - targetSaltKg;
+    saltDiffEl.className = "note";
+    saltDiffEl.textContent = (state.lang === "en" ? "vs recipe target: " : "較配方目標：") + fmtSigned(saltDiff,2) + " kg";
+  }
+
+  // --- 理論比重（依目前實際輸入的水量＋已投芒硝量反推，不是配方原始目標）---
+  const actualConc = totalWater>0 ? (saltTotalKg*1000/totalWater) : null; // g/L
+  const expectedSG = actualConc!==null ? inverseSGFromConcentration(state.temp, actualConc) : null;
+  document.getElementById("expectedSGOut").textContent = expectedSG!==null ? expectedSG.toFixed(4) : "–";
+
+  // --- 量測比重（實測）跟理論比重（依實際輸入）的差異 ---
+  const measuredDiffEl = document.getElementById("measuredSGDiff");
+  if(!sg || isNaN(sg) || expectedSG===null){
+    measuredDiffEl.textContent = "";
+    measuredDiffEl.className = "note";
+  }else{
+    const sgDiff = sg - expectedSG;
+    const sgIsMinor = Math.abs(sgDiff) < 0.001; // 比重差在 0.001 內視為正常誤差
+    measuredDiffEl.className = sgIsMinor ? "note good" : "note danger";
+    measuredDiffEl.textContent = (state.lang === "en" ? "vs theoretical (current entries): " : "較理論比重（依目前實際輸入）：") + fmtSigned(sgDiff,4);
+  }
 
   const conc = interpConcentration(state.temp, sg); // g/L，比重反查出來的目前實際濃度
   const saltTotalG = saltTotalKg * 1000;
@@ -536,14 +587,14 @@ function recomputeBath(){
     note.textContent = extraSaltKg!==null
       ? (isMinor
         ? (state.lang === "en"
-          ? `Concentration is close to target — a minor addition of about ${fmt(extraSaltKg,1)} kg electrolyte is enough; use your judgment.`
+          ? `Concentration is close to target — a minor addition of about ${fmt(extraSaltKg,1)} kg Glauber's salt is enough; use your judgment.`
           : `濃度已接近目標，微調加芒硝約 ${fmt(extraSaltKg,1)} kg 即可，可自行斟酌。`)
         : (state.lang === "en"
-          ? `Concentration is lower than target (too much water, or electrolyte under-dosed) — add approximately ${fmt(extraSaltKg,1)} kg more electrolyte to reach the target concentration at the current water volume.`
+          ? `Concentration is lower than target (too much water, or Glauber's salt under-dosed) — add approximately ${fmt(extraSaltKg,1)} kg more Glauber's salt to reach the target concentration at the current water volume.`
           : `芒硝濃度比目標低（水量偏多，或芒硝下藥不足），建議再加芒硝約 ${fmt(extraSaltKg,1)} kg，以目前水量補到目標濃度。`))
       : (state.lang === "en"
-        ? "Concentration is lower than target — please set the electrolyte dose on the recipe tab first."
-        : "芒硝濃度比目標低，請先於配方卡設定電解質用量。");
+        ? "Concentration is lower than target — please set the Glauber's salt dose on the recipe tab first."
+        : "芒硝濃度比目標低，請先於配方卡設定芒硝用量。");
   }
 }
 
@@ -878,8 +929,8 @@ function updateDyeRecipeRefBox(){
     alkaliText = `${T("alkaliTspBtn")} ${document.getElementById("tspDose").value || "–"} g/L`;
   }
   box.textContent = state.lang === "en"
-    ? `Current recipe reference — electrolyte: ${saltDose} g/L · alkali: ${alkaliText} · fixation time: ${fixTime} min`
-    : `目前配方參考 — 電解質：${saltDose} g/L．鹼劑：${alkaliText}．固著時間：${fixTime} 分`;
+    ? `Current recipe reference — Glauber's salt: ${saltDose} g/L · alkali: ${alkaliText} · fixation time: ${fixTime} min`
+    : `目前配方參考 — 芒硝：${saltDose} g/L．鹼劑：${alkaliText}．固著時間：${fixTime} 分`;
 }
 
 // 計算三段（前處理/染色/水洗）接續在同一條時間軸上的完整曲線座標
@@ -1454,7 +1505,6 @@ function collectRecipeData(){
     reelDiameter: document.getElementById("reelDiameter").value,
     temp: state.temp,
     measuredSG: document.getElementById("measuredSG").value,
-    sgManual: !!state.sgManual,
     processStages: {
       pretreatStartTemp: document.getElementById("pretreatStartTemp").value,
       dyeStartTemp: document.getElementById("dyeStartTemp").value,
@@ -1554,7 +1604,6 @@ function applyRecipeData(data){
 
   state.temp = data.temp || 40;
   document.querySelectorAll("#tempSeg button").forEach(b=>b.classList.toggle("on", Number(b.dataset.val) === state.temp));
-  state.sgManual = !!data.sgManual;
   if(data.measuredSG !== undefined) document.getElementById("measuredSG").value = data.measuredSG;
 
   const ps = data.processStages || {};
