@@ -1335,13 +1335,21 @@ async function handleResultPhotoInput(event){
     if(heic){
       try{
         await loadHeic2Any();
+      }catch(err){
+        console.error("heic2any 函式庫載入失敗：", err);
+        alert(state.lang === "en"
+          ? "Couldn't load the HEIC photo converter — an internet connection is needed the first time it's used. Please try again once you're back online."
+          : "無法載入 HEIC 照片轉檔工具——第一次使用時需要網路連線，請恢復連線後再試一次。");
+        continue;
+      }
+      try{
         const converted = await window.heic2any({ blob: file, toType: "image/jpeg", quality: 0.85 });
         workingFile = Array.isArray(converted) ? converted[0] : converted;
       }catch(err){
         console.error("HEIC 轉檔失敗：", err);
         alert(state.lang === "en"
-          ? "This photo is in iPhone's HEIC format and the conversion failed. Please try again, or switch your iPhone's Camera format to \"Most Compatible\" under Settings → Camera → Formats."
-          : "這張照片是 iPhone 的 HEIC 格式，轉檔失敗。請重試一次，或到 iPhone「設定 → 相機 → 格式」改成「最相容」。");
+          ? "This photo couldn't be converted from HEIC. Please try again, or switch your iPhone's Camera format to \"Most Compatible\" under Settings → Camera → Formats."
+          : "這張照片轉檔失敗，可能是檔案本身有問題。請重試一次，或到 iPhone「設定 → 相機 → 格式」改成「最相容」。");
         continue;
       }
     }
