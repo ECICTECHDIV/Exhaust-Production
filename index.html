@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>浸染試染工具 — 配方 / 浴量校正 / 布速</title>
+
+<!-- PWA：可安裝到手機主畫面／電腦桌面，像 App 一樣使用 -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#1F8A7A">
+<meta name="robots" content="noindex, nofollow">
+<!-- iOS 專屬（iOS 不吃 manifest.json，要靠這幾個 meta/link 才能「加入主畫面」） -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="浸染試染工具">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+<style>
+  :root{
+    --bg: #F7F6F3;
+    --surface: #FFFFFF;
+    --surface-alt: #F7F6F3;
+    --border: #E3E1DC;
+    --border-strong: #C9C6BF;
+    --ink: #1C1B19;
+    --ink-soft: #6B6862;
+    --ink-faint: #A6A29A;
+    --brand: #1F8A7A;
+    --brand-dark: #17685C;
+    --brand-tint: #E6F5F2;
+    --amber: #D97B2B;
+    --amber-tint: #FBEFDF;
+    --danger: #C8331F;
+    --danger-tint: #FBEAE7;
+    --good: #276749;
+    --good-tint: #E9F5EE;
+    --radius: 14px;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --font-num: "IBM Plex Mono", "Source Code Pro", ui-monospace, monospace;
+    font-size: clamp(17px, 15.7px + 0.17vw, 19px);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family: "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,-apple-system,sans-serif;
+    line-height:1.5;
+    padding-bottom:64px;
+  }
+  .shell{max-width:clamp(760px, 90vw, 1280px);margin:0 auto;padding:0 16px;}
+
+  header.top{
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:1rem 1rem;
+  }
+  @media (min-width:640px){
+    header.top{padding:1.5rem 1.5rem;}
+  }
+  header.top .head-row{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    max-width:clamp(760px, 90vw, 1280px);
+    margin:0 auto;
+  }
+  header.top .head-accent-bar{
+    flex:0 0 auto;
+    align-self:stretch;
+    width:4px;
+    min-height:44px;
+    background:var(--brand);
+    border-radius:2px;
+  }
+  header.top .head-titles{flex:1 1 auto;min-width:0;}
+  header.top .head-actions{
+    display:flex;
+    gap:8px;
+    flex-shrink:0;
+  }
+  header.top .head-actions button{
+    appearance:none;
+    border:1px solid var(--border-strong);
+    background:var(--surface);
+    color:var(--ink-soft);
+    width:36px;
+    height:36px;
+    padding:0;
+    border-radius:999px;
+    font-size:.76rem;
+    font-weight:600;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  header.top .head-actions button svg{width:17px;height:17px;}
+  header.top .head-actions button:active{background:var(--bg);}
+  .lang-seg-wrap{
+    display:inline-flex;
+    border-radius:999px;
+    overflow:hidden;
+    border:1.5px solid var(--brand);
+    flex-shrink:0;
+  }
+  header.top .head-actions .lang-seg-wrap .lang-seg-btn{
+    padding:7px 14px;
+    font-size:.78rem;
+    font-weight:700;
+    background:var(--surface);
+    color:var(--brand);
+    border:none;
+    border-radius:0;
+    cursor:pointer;
+  }
+  header.top .head-actions .lang-seg-wrap .lang-seg-btn + .lang-seg-btn{border-left:1.5px solid var(--brand);}
+  header.top .head-actions .lang-seg-wrap .lang-seg-btn.active{background:var(--brand);color:#fff;}
+  header.top h1{
+    margin:0 0 3px;
+    font-size:1.25rem;
+    font-weight:700;
+    letter-spacing:-.01em;
+    color:var(--ink);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  @media (min-width:640px){
+    header.top h1{font-size:1.875rem;}
+  }
+  header.top p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:.85rem;
+  }
+
+  nav.tabs{
+    position:sticky;
+    top:0;
+    z-index:41;
+    background:rgba(255,255,255,.98);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    width:100%;
+  }
+  .tabs-inner{
+    display:flex;
+    gap:2px;
+    max-width:clamp(760px, 90vw, 1280px);
+    margin:0 auto;
+    padding:0 8px;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  .tabs-inner::-webkit-scrollbar{display:none;}
+  nav.tabs button{
+    flex:1 0 auto;
+    appearance:none;
+    border:none;
+    border-bottom:3px solid transparent;
+    background:none;
+    color:var(--ink-soft);
+    padding:10px 4px 9px;
+    font-size:.72rem;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:3px;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  nav.tabs button.active{
+    background:none;
+    color:var(--brand);
+    border-bottom-color:var(--brand);
+  }
+  nav.tabs .tab-icon{
+    width:19px;
+    height:19px;
+    display:block;
+  }
+  nav.tabs .tab-icon svg{width:100%;height:100%;display:block;}
+  .wip-dot{
+    color:var(--amber);
+    font-size:.55rem;
+    vertical-align:super;
+  }
+  nav.tabs button.active .wip-dot{ color:#FFD680; }
+
+  .wip-banner{
+    background:var(--amber-tint);
+    border:1px solid var(--amber);
+    color:#6B4A08;
+    border-radius:var(--radius-sm);
+    padding:12px 14px;
+    font-size:.88rem;
+    font-weight:600;
+    margin-bottom:16px;
+    display:flex;
+    gap:8px;
+    align-items:flex-start;
+  }
+  .wip-banner .wip-icon{font-size:1.1rem;line-height:1;}
+
+  main{padding:1.25rem 1rem 1rem;}
+  main.shell{padding-top:1.25rem;}
+  @media (min-width:640px){
+    main{padding:1.5rem;}
+    main.shell{padding-top:1.5rem;}
+  }
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    padding:1.25rem;
+    margin-bottom:1.25rem;
+  }
+  @media (min-width:640px){
+    .card{
+      padding:1.5rem;
+      margin-bottom:1.5rem;
+    }
+  }
+  .card h2{
+    margin:0 0 0.5rem;
+    font-size:1.125rem;
+    font-weight:600;
+    color:var(--ink);
+    letter-spacing:-.01em;
+  }
+  @media (min-width:640px){
+    .card h2{
+      font-size:1.25rem;
+      margin-bottom:0.625rem;
+    }
+  }
+  .card .sub{
+    margin:0 0 16px;
+    color:var(--ink-soft);
+    font-size:.88rem;
+  }
+
+  .field{margin-bottom:14px;}
+  .field label{
+    display:block;
+    font-size:.86rem;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  /* 同一排欄位標籤保留兩行高度，避免其中一個標籤換行時、跟旁邊沒換行的欄位輸入框對不齊 */
+  .row2 .field label, .row3 .field label{
+    min-height:2.6em;
+    display:flex;
+    align-items:flex-end;
+  }
+  @media (max-width:480px){
+    .row3{grid-template-columns:1fr 1fr;}
+  }
+
+  input[type=number], input[type=text], select{
+    width:100%;
+    font-size:0.875rem;
+    font-weight:500;
+    padding:0.625rem 0.875rem;
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius-sm);
+    background:var(--surface);
+    color:var(--ink);
+    font-family:inherit;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  @media (min-width:640px){
+    input[type=number], input[type=text], select{
+      font-size:0.9375rem;
+      padding:0.75rem 1rem;
+    }
+  }
+  input[type=number]{font-family:var(--font-num);}
+  input::placeholder{color:var(--ink-faint);font-weight:400;}
+  input:focus, select:focus{
+    outline:none;
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px var(--brand-tint);
+    background:#fff;
+  }
+  .unit-input{position:relative;}
+  .unit-input span{
+    position:absolute;
+    right:12px;top:50%;transform:translateY(-50%);
+    color:var(--ink-soft);
+    font-size:.86rem;
+    pointer-events:none;
+  }
+
+  .seg{
+    display:flex;
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    overflow:hidden;
+  }
+  .seg button{
+    flex:1;
+    padding:10px 6px;
+    border:none;
+    background:var(--surface-alt);
+    color:var(--ink-soft);
+    font-size:.88rem;
+    font-weight:600;
+    cursor:pointer;
+    border-right:1px solid var(--border);
+  }
+  .seg button:last-child{border-right:none;}
+  .seg button.on{
+    background:var(--brand);
+    color:#fff;
+  }
+
+  .divider{
+    height:1px;
+    background:var(--border);
+    margin:16px 0;
+  }
+
+  .result-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:4px;
+  }
+  .result-box{
+    background:var(--brand-tint);
+    border-radius:var(--radius-sm);
+    padding:12px 14px;
+  }
+  .result-box .k{
+    font-size:.8rem;
+    color:var(--ink-soft);
+    font-weight:600;
+    margin-bottom:4px;
+  }
+  .result-box .v{
+    font-size:1.35rem;
+    font-weight:700;
+    font-family:var(--font-num);
+    color:var(--ink);
+  }
+  .result-box .v small{
+    font-size:.8rem;
+    font-weight:600;
+    margin-left:2px;
+  }
+  .result-box .v.small-text{
+    font-size:.88rem;
+    font-weight:500;
+    line-height:1.4;
+  }
+  .result-box.wide{grid-column:1 / -1;}
+
+  .note{
+    font-size:.85rem;
+    color:var(--ink-soft);
+    background:var(--surface-alt);
+    border-left:3px solid var(--border);
+    padding:10px 12px;
+    border-radius:4px;
+    margin-top:12px;
+  }
+  .note.warn{
+    background:var(--amber-tint);
+    border-left-color:var(--amber);
+    color:#6B4A08;
+  }
+  .note.danger{
+    background:var(--danger-tint);
+    border-left-color:var(--danger);
+    color:#7A2020;
+  }
+  .note.good{
+    background:var(--good-tint);
+    border-left-color:var(--good);
+    color:#1E4D34;
+  }
+
+  table.ref{
+    width:100%;
+    border-collapse:collapse;
+    font-size:.82rem;
+    margin-top:10px;
+  }
+  table.ref th, table.ref td{
+    border:1px solid var(--border);
+    padding:6px 6px;
+    text-align:center;
+  }
+  table.ref th{
+    background:var(--surface-alt);
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  table.ref tr.hit td{
+    background:var(--brand-tint);
+    font-weight:700;
+    color:var(--ink);
+  }
+
+  .toggle-link{
+    display:inline-block;
+    margin-top:8px;
+    font-size:.85rem;
+    color:var(--brand);
+    font-weight:600;
+    cursor:pointer;
+    text-decoration:underline;
+  }
+
+  .btn{
+    display:inline-block;
+    background:var(--brand);
+    color:#fff;
+    border:none;
+    padding:12px 20px;
+    border-radius:var(--radius-sm);
+    font-size:1rem;
+    font-weight:700;
+    cursor:pointer;
+    width:100%;
+  }
+  .btn.secondary{
+    background:var(--surface);
+    color:var(--brand);
+    border:1px solid var(--brand);
+  }
+  #downloadMenuBtn{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+  }
+  @media (max-width:639px){
+    .download-btn-label{display:none;}
+  }
+  .btn-row{
+    display:flex;
+    gap:10px;
+  }
+  .btn-row .btn{width:auto;flex:1;font-size:.88rem;padding:12px 10px;}
+
+  .hidden-el{display:none;}
+  .hidden-file-input{display:none;}
+
+  /* ---- 染色結果：拍照/上傳照片 ---- */
+  .result-photo-buttons{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .result-photo-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:8px;
+    padding:11px 16px;
+    border-radius:var(--radius-sm);
+    font-size:.9rem;
+    font-weight:700;
+    cursor:pointer;
+    background:var(--brand-tint);
+    color:var(--brand-dark);
+    border:none;
+  }
+  .result-photo-btn svg{width:18px;height:18px;flex-shrink:0;}
+  .result-photo-btn.primary{
+    background:var(--brand);
+    color:#fff;
+    border-color:var(--brand);
+  }
+  .input-label{
+    display:block;
+    font-size:.86rem;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin:0 0 6px;
+  }
+  #dyeResultNotes{
+    display:block;
+    width:100%;
+    min-height:140px;
+    padding:10px 12px;
+    font-size:1rem;
+    font-weight:500;
+    font-family:inherit;
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius-sm);
+    background:var(--surface);
+    color:var(--ink);
+    resize:both;
+    box-sizing:border-box;
+  }
+  #dyeResultNotes:focus{
+    outline:none;
+    border-color:var(--brand);
+    box-shadow:0 0 0 3px var(--brand-tint);
+    background:#fff;
+  }
+  .result-photos-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+    margin-bottom:18px;
+  }
+  @media (min-width:480px){
+    .result-photos-grid{grid-template-columns:repeat(3,1fr);}
+  }
+  .photo-card{position:relative;}
+  .photo-card img{
+    width:100%;
+    aspect-ratio:1/1;
+    object-fit:cover;
+    border-radius:var(--radius-sm);
+    border:1px solid var(--border);
+    margin-bottom:6px;
+    cursor:zoom-in;
+    display:block;
+  }
+  .photo-card .photo-del-btn{
+    position:absolute;
+    top:-6px;right:-6px;
+    width:24px;height:24px;
+    border-radius:50%;
+    background:var(--danger);
+    color:#fff;
+    border:none;
+    font-size:.85rem;
+    font-weight:700;
+    line-height:1;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .photo-card .photo-caption-input{
+    width:100%;
+    padding:6px 8px;
+    font-size:.78rem;
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius-sm);
+  }
+  /* 工卡本體裡的唯讀照片說明（跟編輯用的 .photo-caption-input 不同，這裡純顯示文字、沒有輸入框） */
+  .p-photo-caption{
+    font-size:.8rem;
+    font-weight:600;
+    color:var(--ink);
+    text-align:center;
+    line-height:1.35;
+  }
+  #p-resultNotes{
+    font-size:.92rem;
+    color:var(--ink);
+    line-height:1.5;
+    margin-top:8px;
+  }
+  .photo-lightbox{
+    position:fixed;inset:0;z-index:998;
+    background:rgba(0,0,0,.9);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:16px;
+  }
+  .photo-lightbox.hidden-el{display:none;}
+  .photo-lightbox img{max-width:100%;max-height:85vh;border-radius:var(--radius-sm);}
+  .photo-lightbox button{
+    margin-top:16px;
+    padding:10px 24px;
+    background:#fff;
+    color:var(--ink);
+    border:none;
+    border-radius:var(--radius-sm);
+    font-weight:700;
+    cursor:pointer;
+  }
+
+  .stage-toggle{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    width:100%;
+    background:none;
+    border:none;
+    padding:0;
+    cursor:pointer;
+    text-align:left;
+  }
+  .stage-toggle h2{margin:0;}
+  .stage-chevron{
+    font-size:1.1rem;
+    color:var(--brand);
+    transition:transform .2s;
+    flex:0 0 auto;
+    margin-left:10px;
+  }
+  .stage-toggle.open .stage-chevron{transform:rotate(180deg);}
+  .stage-body{margin-top:14px;}
+
+  /* ---- 工卡預覽 ---- */
+  .cardpaper{
+    background:#fff;
+    border:2px solid var(--brand);
+    border-radius:var(--radius);
+    padding:20px;
+  }
+  .cardpaper-title-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:2px;
+  }
+  .cardpaper-accent-bar{
+    flex:0 0 auto;
+    width:6px;
+    height:24px;
+    background:var(--brand);
+    border-radius:999px;
+  }
+  @media (max-width:639px){
+    .cardpaper-accent-bar{display:none;}
+  }
+  .cardpaper h2{
+    margin:0;
+    font-size:1.2rem;
+    color:var(--ink);
+  }
+  .cardpaper .meta{color:var(--ink-soft);font-size:.85rem;margin-bottom:14px;}
+  .cardpaper .grp-title{
+    font-size:.88rem;
+    font-weight:700;
+    color:var(--ink);
+    margin:16px 0 8px;
+    padding-bottom:4px;
+    border-bottom:2px solid var(--brand-tint);
+  }
+  .order-info-box{
+    background:var(--surface-alt);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    padding:12px 14px;
+  }
+  .kv{
+    display:grid;
+    grid-template-columns:max-content 1fr max-content 1fr;
+    row-gap:8px;
+    column-gap:12px;
+    font-size:.95rem;
+  }
+  .kv .k{color:var(--ink-soft);white-space:nowrap;}
+  .kv .v{font-weight:700;text-align:right;}
+  @media (max-width:480px){
+    .kv{grid-template-columns:max-content 1fr;}
+  }
+
+  /* ---- 秤量表 ---- */
+  .weigh-row{
+    display:grid;
+    grid-template-columns: minmax(64px,1fr) minmax(64px,0.9fr) minmax(64px,0.9fr) 26px;
+    gap:5px;
+    align-items:center;
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:8px;
+    background:var(--surface-alt);
+    margin-bottom:8px;
+  }
+  .weigh-row.has-mode{
+    grid-template-columns: minmax(56px,1fr) 50px minmax(56px,0.85fr) minmax(56px,0.85fr) 26px;
+  }
+  .weigh-row input[type=text]{
+    padding:8px 7px;
+    font-size:.85rem;
+    min-width:0;
+  }
+  .weigh-row select{
+    padding:8px 1px 8px 4px;
+    font-size:.66rem;
+    min-width:0;
+  }
+  .weigh-row input[type=number]{
+    padding:8px 6px;
+    font-size:.9rem;
+    min-width:0;
+  }
+  .w-del{
+    width:26px;height:30px;
+    border:1px solid var(--border);
+    background:#fff;
+    color:var(--danger);
+    border-radius:6px;
+    font-size:1rem;
+    line-height:1;
+    cursor:pointer;
+    padding:0;
+  }
+  .w-result{
+    font-weight:700;
+    font-family:var(--font-num);
+    color:var(--ink);
+    text-align:right;
+    font-size:.85rem;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .add-row-btn{
+    background:none;
+    border:none;
+    color:var(--brand);
+    font-weight:600;
+    font-size:.85rem;
+    cursor:pointer;
+    padding:4px 10px;
+  }
+  .add-row-btn:active{text-decoration:underline;}
+  /* ---- 染程階段列 ---- */
+  .stage-row{
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:10px;
+    background:var(--surface-alt);
+    margin-bottom:8px;
+  }
+  .stage-row .note-line{
+    display:flex;
+    gap:6px;
+    margin-bottom:8px;
+  }
+  .stage-row .note-line input{
+    flex:1;
+    padding:8px 10px;
+    font-size:.88rem;
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    background:#fff;
+    min-width:0;
+  }
+  .stage-row .num-line{
+    display:grid;
+    grid-template-columns:1fr 1fr 1fr 26px;
+    gap:6px;
+    align-items:center;
+  }
+  .stage-row .num-line label{
+    font-size:.68rem;
+    color:var(--ink-soft);
+    display:block;
+    margin-bottom:2px;
+  }
+  .stage-row .num-line input{
+    width:100%;
+    padding:7px 6px;
+    font-size:.88rem;
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    background:#fff;
+  }
+  .stage-row .drain-line{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-top:8px;
+    padding-top:8px;
+    border-top:1px dashed var(--border);
+  }
+  .stage-row .drain-check{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:.85rem;
+    font-weight:600;
+    color:var(--ink-soft);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .stage-row .drain-check input{width:16px;height:16px;}
+  .stage-row .drain-hint{
+    font-size:.76rem;
+    color:var(--ink-soft);
+    font-weight:400;
+  }
+  .stage-chart-wrap{
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px solid var(--border);
+  }
+  .stage-chart-title{
+    font-size:.85rem;
+    font-weight:700;
+    color:var(--ink);
+    margin-bottom:8px;
+  }
+
+  .weigh-total{
+    margin-top:12px;
+    padding:12px 14px;
+    background:var(--brand-tint);
+    border-radius:var(--radius-sm);
+    font-weight:700;
+    color:var(--ink);
+    font-size:.92rem;
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:6px;
+  }
+  .weigh-section-title{
+    font-size:.95rem;
+    font-weight:700;
+    color:var(--ink);
+    margin:20px 0 10px;
+  }
+  .weigh-section-title:first-child{margin-top:0;}
+
+  @media print{
+    body{background:#fff;padding:0;}
+    header.top, nav.tabs, .no-print{display:none !important;}
+    .panel{display:none !important;}
+    #panel-print{display:block !important;}
+    main{padding:0;}
+    .shell{max-width:100%;}
+    .cardpaper{border:none;padding:0;}
+    table, .photo-card{page-break-inside:avoid;}
+    /* 每個大區塊列印時不能被硬切一半，塞不下就整塊擠到下一頁 */
+    .print-section{page-break-inside:avoid;}
+    #p-resultSection{border-top:2px solid #000;margin-top:16px;padding-top:12px;}
+  }
+
+  /* 桌面版留白響應式調整——原則：元件本身尺寸（按鈕/輸入框內距、圖示大小、卡片圓角）固定不變，
+     操作手感在手機/桌面要一致；但版面留白/間距（區塊間距、離螢幕邊緣的距離、頁首與工具列的內距）
+     要響應式，螢幕越寬應該有越多呼吸空間，不然桌面版會顯得緊縮、內容不夠醒目 */
+  @media (min-width:640px){
+    .jump-nav-inner{padding:10px 24px;}
+    .clear-btn-wrap{margin-top:0 !important;}
+  }
+
+  .download-menu-wrap{position:relative;display:inline-block;}
+  .download-menu{
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0;
+    background:var(--surface);
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius-sm);
+    overflow:hidden;
+    min-width:160px;
+    z-index:30;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);
+  }
+  .download-menu button{
+    display:block;
+    width:100%;
+    text-align:left;
+    padding:11px 14px;
+    background:none;
+    border:none;
+    font-size:.9rem;
+    font-weight:600;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  .download-menu button:active{background:var(--surface-alt);}
+  .download-menu button + button{border-top:1px solid var(--border);}
+
+  /* ---- 訂單資訊 / 配方存取 ---- */
+  .top-bar{
+    background:var(--surface);
+    border-bottom:1px solid var(--border);
+    padding:14px 16px;
+  }
+  .top-bar .shell{padding:0 16px;}
+  .top-bar-label{
+    display:block;
+    font-size:.82rem;
+    font-weight:600;
+    color:var(--ink-soft);
+    margin-bottom:4px;
+  }
+  .top-bar-slim{
+    padding:1rem 1rem 0;
+    margin-bottom:1.25rem;
+  }
+  @media (min-width:640px){
+    .top-bar-slim{
+      padding:1.5rem 1.5rem 0;
+      margin-bottom:1.5rem;
+    }
+  }
+  .top-bar-slim .shell{
+    padding:12px 14px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+  }
+  .top-bar-slim-grid{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+  }
+  @media (min-width:640px){
+    .top-bar-slim-grid{
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+    }
+  }
+  .top-bar-slim-row{
+    display:flex;
+    gap:8px;
+  }
+  .top-bar-slim select, .top-bar-slim input[type=text]{
+    flex:1 1 auto;
+    min-width:0;
+    padding:9px 10px;
+    font-size:.9rem;
+    border:1px solid var(--border-strong);
+    border-radius:var(--radius-sm);
+    background:#fff;
+  }
+  .top-bar-slim .btn-sm{
+    flex:0 0 auto;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:9px 12px;
+    border-radius:var(--radius-sm);
+    border:1px solid var(--brand);
+    background:var(--brand);
+    color:#fff;
+    cursor:pointer;
+  }
+  .top-bar-slim .btn-sm svg{width:18px;height:18px;flex-shrink:0;}
+  .top-bar-slim .btn-sm.danger{
+    border-color:var(--danger);
+    background:var(--danger);
+    color:#fff;
+  }
+  .top-bar-card{
+    background:var(--surface-alt);
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    padding:12px 14px;
+    margin-bottom:10px;
+  }
+  .top-bar-card:last-child{margin-bottom:0;}
+  .row-inline{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .row-inline > *{flex:1 1 140px;min-width:0;}
+  .row-inline input[type=text]{
+    width:100%;
+    padding:9px 10px;
+    font-size:.92rem;
+    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
+    background:#fff;
+  }
+  .row-inline .btn-sm{
+    flex:0 0 auto;
+    padding:9px 14px;
+    border-radius:var(--radius-sm);
+    border:1px solid var(--brand);
+    background:var(--brand);
+    color:#fff;
+    font-size:.88rem;
+    font-weight:700;
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .row-inline .btn-sm.danger{
+    border-color:var(--danger);
+    background:#fff;
+    color:var(--danger);
+  }
+  .toggle-collapse{
+    font-size:.8rem;
+    color:var(--brand);
+    font-weight:600;
+    cursor:pointer;
+    background:none;
+    border:none;
+    padding:0;
+  }
+  .clear-link{
+    font-size:.82rem;
+    color:var(--ink-soft);
+    font-weight:600;
+    cursor:pointer;
+    background:none;
+    border:none;
+    padding:4px 2px;
+    text-decoration:underline;
+  }
+  /* 跟主分頁籤列(nav.tabs)同樣的拆法：外層負責滿版模糊背景貼頂，
+     .jump-nav-inner 負責寬度限制、置中、橫向捲動——
+     不然這排會跟正上方已經滿版的分頁籤列不一致，兩條貼頂列一個到底、一個沒到底很奇怪 */
+  .jump-nav{
+    background:rgba(255,255,255,.95);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    z-index:40;
+    margin-bottom:0;
+  }
+  .jump-nav-inner{
+    display:flex;
+    justify-content:center;
+    flex-wrap:nowrap;
+    gap:8px;
+    overflow-x:auto;
+    padding:10px 16px;
+    max-width:clamp(760px, 90vw, 1280px);
+    margin:0 auto;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .jump-nav-inner::-webkit-scrollbar{display:none;}
+  .jump-nav button{
+    flex:0 0 auto;
+    white-space:nowrap;
+    font-size:.82rem;
+    font-weight:600;
+    padding:8px 16px;
+    border-radius:999px;
+    border:1px solid var(--border-strong);
+    background:var(--surface);
+    color:var(--ink-soft);
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .jump-nav button:hover{
+    border-color:var(--ink-faint);
+    background:var(--surface-alt);
+  }
+  .jump-nav button.active{
+    background:var(--brand);
+    border-color:var(--brand);
+    color:#fff;
+  }
+  .order-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:8px;
+  }
+  @media (max-width:420px){
+    .order-grid{grid-template-columns:1fr;}
+  }
+
+  /* ---- 底部頁尾 ---- */
+  footer.app-footer{
+    text-align:center;
+    padding:20px 16px 8px;
+    color:var(--ink-soft);
+    font-size:.8rem;
+  }
+  footer.app-footer a{
+    color:var(--ink-soft);
+    text-decoration:underline;
+  }
+  .app-version{
+    margin-top:6px;
+    font-size:.72rem;
+    color:var(--ink-faint);
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="head-row">
+    <span class="head-accent-bar"></span>
+    <div class="head-titles">
+      <h1 data-i18n="appTitle">浸染試染工具</h1>
+    </div>
+    <div class="head-actions">
+      <div class="lang-seg-wrap">
+        <button type="button" id="langBtnZh" class="lang-seg-btn active" onclick="setLanguage('zh')">中</button>
+        <button type="button" id="langBtnEn" class="lang-seg-btn" onclick="setLanguage('en')">EN</button>
+      </div>
+      <button type="button" id="shareBtn" onclick="shareToolUrl()" title="分享">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<div class="top-bar-slim no-print">
+  <div class="shell">
+    <div class="top-bar-slim-grid">
+      <div>
+        <label class="top-bar-label" data-i18n="loadRecipeLabel">載入配方</label>
+        <div class="top-bar-slim-row">
+          <select id="savedRecipesSel" onchange="loadRecipe()">
+            <option value="" data-i18n="selectRecipeOpt">-- 選擇已儲存的配方 --</option>
+          </select>
+          <button type="button" class="btn-sm danger" onclick="deleteRecipe()" title="刪除" data-i18n-title="deleteBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </div>
+      <div>
+        <label class="top-bar-label" data-i18n="saveRecipeLabel">儲存配方</label>
+        <div class="top-bar-slim-row">
+          <input type="text" id="recipeNameInput" data-i18n-placeholder="recipeNamePh" placeholder="輸入配方名稱">
+          <button type="button" class="btn-sm" onclick="saveRecipe()" title="儲存" data-i18n-title="saveBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<nav class="tabs">
+  <div class="tabs-inner">
+    <button class="tab-btn active" data-tab="recipe">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v5l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/><path d="M7.5 14h9"/></svg></span>
+      <span data-i18n="tabRecipe">配方</span>
+    </button>
+    <button class="tab-btn" data-tab="process">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l4-8 5 3 5-9 4 6"/></svg></span>
+      <span data-i18n="tabProcess">染程</span>
+    </button>
+    <button class="tab-btn" data-tab="print">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg></span>
+      <span data-i18n="tabPrint">工卡</span>
+    </button>
+    <button class="tab-btn" data-tab="reference">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg></span>
+      <span data-i18n="tabReference">結果</span>
+    </button>
+    <button class="tab-btn" data-tab="bath">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 5 6 8 6 11a6 6 0 0 1-12 0c0-3 2-6 6-11z"/></svg></span>
+      <span data-i18n="tabBath">浴量</span>
+    </button>
+    <button class="tab-btn" data-tab="speed">
+      <span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15a8 8 0 1 1 16 0"/><path d="M12 15l4-5"/><circle cx="12" cy="15" r="1" fill="currentColor" stroke="none"/></svg></span>
+      <span data-i18n="tabSpeed">布速</span> <span class="wip-dot" title="建構中">●</span>
+    </button>
+  </div>
+</nav>
+
+<div class="jump-nav no-print" id="jumpNav">
+  <div class="jump-nav-inner">
+    <button type="button" onclick="jumpToSection('jumpSection-order')" data-i18n="jumpOrder">訂單/布料</button>
+    <button type="button" onclick="jumpToSection('jumpSection-dye')" data-i18n="jumpDye">染料配方</button>
+    <button type="button" onclick="jumpToSection('jumpSection-salt')" data-i18n="jumpSalt">鹽鹼配方</button>
+  </div>
+</div>
+
+<main class="shell">
+
+  <!-- ============ TAB 1: 配方卡 ============ -->
+  <section class="panel active" id="panel-recipe">
+    <div style="display:flex;justify-content:flex-end;margin-top:0;margin-bottom:4px;" class="clear-btn-wrap">
+      <button type="button" class="clear-link" id="clearRecipeBtn" data-i18n="clearBtn">清除</button>
+    </div>
+    <div id="jumpSection-order"></div>
+    <div class="card">
+      <h2 data-i18n="orderInfoTitle">訂單資訊</h2>
+      <div class="order-grid">
+        <input type="text" id="customerName" data-i18n-placeholder="customerPh" placeholder="客戶">
+        <input type="text" id="colorOrder" data-i18n-placeholder="colorOrderPh" placeholder="顏色/訂單號">
+        <input type="text" id="fabricDesc" data-i18n-placeholder="fabricDescPh" placeholder="布料類型（例：100%純棉）" style="grid-column:1/-1;">
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="basicInfoTitle">基本資料</h2>
+      <p class="sub" data-i18n="basicInfoSub">布重與浴比會套用到後面所有校正</p>
+      <div class="row2">
+        <div class="field">
+          <label data-i18n="fabricWeightLabel">布重</label>
+          <div class="unit-input">
+            <input type="number" id="fabricWeight" value="500" min="0" step="1">
+            <span>kg</span>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="liquorRatioLabel">浴比 (1 : X)</label>
+          <input type="number" id="liquorRatio" value="8" min="1" step="1" inputmode="numeric">
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="fabricTreatmentLabel">布種</label>
+        <div class="seg" id="fabricTypeSeg">
+          <button data-val="unmerc" class="on" data-i18n="unmercBtn">未絲光棉</button>
+          <button data-val="merc" data-i18n="mercBtn">絲光棉／嫘縈</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="jumpSection-dye"></div>
+    <div class="card">
+      <h2 data-i18n="dyeRecipeTitle">染料配方</h2>
+      <p class="sub" data-i18n="dyeRecipeSub">染色濃度（OWF%）由下方染料明細自動加總，不需另外輸入</p>
+
+      <div class="weigh-list" id="dyeRows"></div>
+      <button class="add-row-btn" id="addDyeRow" data-i18n="addDyeBtn">＋ 新增染料</button>
+
+      <div class="result-grid" style="margin-top:14px;">
+        <div class="result-box">
+          <div class="k" data-i18n="owfTotalLabel">染色濃度合計</div>
+          <div class="v" id="owfTotalOut">–<small>% OWF</small></div>
+        </div>
+        <div class="result-box">
+          <div class="k" data-i18n="dyeTotalLabel">染料總重</div>
+          <div class="v" id="dyeTotalOut">–<small>kg</small></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 data-i18n="auxTitle">助劑秤量表</h2>
+      <p class="sub" data-i18n="auxSub">每項可選「%OWF（依布重）」或「g/L・ml/L（依浴液量）」，自動換算實際用量</p>
+
+      <div class="weigh-list" id="auxRows"></div>
+      <button class="add-row-btn" id="addAuxRow" data-i18n="addAuxBtn">＋ 新增助劑</button>
+      <div class="weigh-total" id="auxTotalOut">
+        <span>助劑總重：– g</span>
+        <span>助劑總液量：– ml</span>
+      </div>
+    </div>
+
+    <div id="jumpSection-salt"></div>
+    <div class="card">
+      <h2 data-i18n="alkaliRecTitle">建議鹽鹼用量</h2>
+      <p class="sub" id="owfRangeLabel">依 Everzol 染料染色濃度用量表帶出，可自行覆寫</p>
+
+      <div class="row2">
+        <div class="field">
+          <label data-i18n="saltDoseLabel">電解質（芒硝／鹽）</label>
+          <div class="unit-input">
+            <input type="number" id="saltDose" min="0" step="1">
+            <span>g/L</span>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="fixTimeLabel">建議固著時間</label>
+          <div class="unit-input">
+            <input type="number" id="fixTime" min="0" step="1">
+            <span>分</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="alkaliModeLabel">鹼劑方式</label>
+        <div class="seg" id="alkaliModeSeg">
+          <button data-val="alone" class="on" data-i18n="alkaliAloneBtn">純鹼</button>
+          <button data-val="combined" data-i18n="alkaliCombinedBtn">純鹼＋液鹼</button>
+          <button data-val="tsp" data-i18n="alkaliTspBtn">磷酸三鈉</button>
+        </div>
+      </div>
+
+      <div class="field" id="alkaliAloneGroup">
+        <label data-i18n="sodaAloneLabel">純鹼</label>
+        <div class="unit-input">
+          <input type="number" id="sodaAloneDose" min="0" step="0.1">
+          <span>g/L</span>
+        </div>
+      </div>
+
+      <div class="row2" id="alkaliCombinedGroup" style="display:none;">
+        <div class="field">
+          <label data-i18n="sodaCombinedLabel">純鹼</label>
+          <div class="unit-input">
+            <input type="number" id="sodaCombinedDose" min="0" step="0.1">
+            <span>g/L</span>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="liquidAlkaliLabel">液鹼(38°Bé)</label>
+          <div class="unit-input">
+            <input type="number" id="liquidAlkaliDose" min="0" step="0.1">
+            <span>ml/L</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field" id="alkaliTspGroup" style="display:none;">
+        <label data-i18n="tspLabel">磷酸三鈉</label>
+        <div class="unit-input">
+          <input type="number" id="tspDose" min="0" step="0.1">
+          <span>g/L</span>
+        </div>
+      </div>
+
+
+      <div class="result-grid">
+        <div class="result-box wide">
+          <div class="k" data-i18n="totalLiquorLabel">總浴液量（布重 × 浴比）</div>
+          <div class="v" id="totalLiquorOut">–<small>L</small></div>
+        </div>
+        <div class="result-box">
+          <div class="k" data-i18n="saltTotalLabel">電解質總需求量</div>
+          <div class="v" id="saltTotalOut">–<small>kg</small></div>
+        </div>
+        <div id="alkaliTotalBoxes" style="display:contents;"></div>
+      </div>
+
+      <span class="toggle-link" id="toggleRefTable" data-i18n="showRefTable">顯示 Everzol 鹽鹼用量對照表</span>
+      <table class="ref" id="refTable" style="display:none;">
+        <thead>
+          <tr><th>OWF%</th><th data-i18n="refUnmerc">未絲光棉</th><th data-i18n="refMerc">絲光棉／嫘縈</th><th data-i18n="refSodaAlone">純鹼(單獨)</th><th data-i18n="refCombined">純鹼+液鹼</th><th data-i18n="refTsp">磷酸三鈉</th><th data-i18n="refFixTime">固著(分)</th></tr>
+        </thead>
+        <tbody id="refTableBody"></tbody>
+      </table>
+
+      <div class="note warn">
+        <span data-i18n="dyeWarnNote">染 Turquoise Blue G、Brilliant Blue R s/p、B-BRF 150%、Blue LX 系列僅建議使用芒硝；Brilliant Blue R s/p 芒硝用量請勿超過 50 g/L。</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 2: 浴量校正 ============ -->
+  <section class="panel" id="panel-bath">
+    <div class="card">
+      <h2 data-i18n="bathTitle">浴量／浴比校正</h2>
+      
+      <div class="row2">
+        <div class="field">
+          <label data-i18n="bathTotalWaterLabel">總水量（來自配方卡）</label>
+          <div class="unit-input">
+            <input type="number" id="bathTotalWater" min="0" step="1">
+            <span>L</span>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="bathSaltTotalLabel">已投電解質量（來自配方卡）</label>
+          <div class="unit-input">
+            <input type="number" id="bathSaltTotal" min="0" step="0.1">
+            <span>kg</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="row2">
+        <div class="field">
+          <label data-i18n="tempLabel">比重量測溫度</label>
+          <div class="seg" id="tempSeg">
+            <button data-val="40" class="on">40°C</button>
+            <button data-val="60">60°C</button>
+            <button data-val="80">80°C</button>
+          </div>
+        </div>
+        <div class="field">
+          <label data-i18n="measuredSGLabel">量測比重</label>
+          <input type="number" id="measuredSG" value="1.050" min="0.9" max="1.2" step="0.0001">
+        </div>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-box">
+          <div class="k" data-i18n="sgConcLabel">反查濃度</div>
+          <div class="v" id="sgConcOut">–<small>g/L</small></div>
+        </div>
+        <div class="result-box">
+          <div class="k" data-i18n="actualWaterLabel">缸內實際水量</div>
+          <div class="v" id="actualWaterOut">–<small>L</small></div>
+        </div>
+        <div class="result-box">
+          <div class="k" id="makeupWaterLabelEl" data-i18n="makeupWaterLabel">還需補水量</div>
+          <div class="v" id="makeupWaterOut">–<small>L</small></div>
+        </div>
+        <div class="result-box">
+          <div class="k" data-i18n="startLevelLabel">目前液位比例</div>
+          <div class="v" id="startLevelOut">–<small>%</small></div>
+        </div>
+      </div>
+      <div class="note" id="bathNote"></div>
+
+      <span class="toggle-link" id="toggleSgTable" data-i18n="showSgTable">顯示比重對照表</span>
+      <div id="sgTableWrap" style="display:none;">
+        <div style="max-height:340px; overflow-y:auto; margin-top:8px; border:1px solid var(--border); border-radius:8px;">
+          <table class="ref" style="margin-top:0;">
+            <thead>
+              <tr><th colspan="2">40°C</th><th colspan="2">60°C</th><th colspan="2">80°C</th></tr>
+              <tr><th data-i18n="sgCol">比重</th><th data-i18n="concCol">濃度g/l</th><th data-i18n="sgCol">比重</th><th data-i18n="concCol">濃度g/l</th><th data-i18n="sgCol">比重</th><th data-i18n="concCol">濃度g/l</th></tr>
+            </thead>
+            <tbody id="sgTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 3: 布速 ============ -->
+  <section class="panel" id="panel-speed">
+    <div class="wip-banner">
+      <span class="wip-icon">⚠️</span>
+      <span data-i18n="speedWipNote">此頁功能尚未定案、建構中，數字僅供參考，請勿直接用於現場設定。</span>
+    </div>
+    <div class="card">
+      <h2 data-i18n="speedTitle">布速參考區間</h2>
+      <p class="sub" data-i18n="speedSub">參考值，依現場實際機台校正後可自行調整</p>
+
+      <div class="field">
+        <label data-i18n="machineTypeLabel">染色機類型</label>
+        <select id="machineTypeSel">
+          <option value="winch" data-i18n="machineWinch">繩染／絞盤（舊式，無噴嘴）</option>
+          <option value="overflow" data-i18n="machineOverflow">溢流機</option>
+          <option value="softflow" data-i18n="machineSoftflow">軟流機（低張力）</option>
+          <option value="jet" selected data-i18n="machineJet">噴射機（Jet）</option>
+          <option value="airflow" data-i18n="machineAirflow">氣流機（Airflow）</option>
+        </select>
+        <div class="note" id="machineInfoNote" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="weightGradeLabel">布重分級</label>
+        <div class="seg" id="weightGradeSeg">
+          <button data-val="light" class="on"><span data-i18n="lightBtn">輕薄</span><br><span style="font-weight:400;font-size:.72rem;">&lt;150 g/m²</span></button>
+          <button data-val="mid"><span data-i18n="midBtn">中厚</span><br><span style="font-weight:400;font-size:.72rem;">150–300</span></button>
+          <button data-val="heavy"><span data-i18n="heavyBtn">厚重</span><br><span style="font-weight:400;font-size:.72rem;">&gt;300 g/m²</span></button>
+        </div>
+      </div>
+
+      <div class="field">
+        <label data-i18n="ratioGradeLabel">浴比等級（依配方卡浴比自動判定，可覆寫）</label>
+        <div class="seg" id="ratioGradeSeg">
+          <button data-val="low" data-i18n="ratioLowBtn">低浴比 &lt;1:6</button>
+          <button data-val="mid" class="on" data-i18n="ratioMidBtn">標準 1:6–1:10</button>
+          <button data-val="high" data-i18n="ratioHighBtn">高浴比 &gt;1:10</button>
+        </div>
+      </div>
+
+      <div class="result-grid">
+        <div class="result-box wide">
+          <div class="k" data-i18n="speedRangeLabel">建議布速區間</div>
+          <div class="v" id="speedRangeOut">–<small>m/min</small></div>
+        </div>
+        <div id="pressureBox" class="result-box wide">
+          <div class="k" data-i18n="pressureRangeLabel">建議噴嘴壓力</div>
+          <div class="v" id="pressureRangeOut">–<small>bar</small></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label data-i18n="reelDiameterLabel">絞盤／主滾筒直徑（選填，用於換算實際轉速）</label>
+        <div class="unit-input">
+          <input type="number" id="reelDiameter" min="0" step="1" placeholder="例如 400">
+          <span>mm</span>
+        </div>
+      </div>
+      <div id="rpmBox" class="result-grid" style="display:none;">
+        <div class="result-box wide">
+          <div class="k" data-i18n="rpmRangeLabel">對應絞盤轉速區間</div>
+          <div class="v" id="rpmRangeOut">–<small>rpm</small></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="field">
+        <label data-i18n="measureModeLabel">量測方式</label>
+        <div class="seg" id="measureModeSeg">
+          <button data-val="direct" class="on" data-i18n="directModeBtn">直接輸入布速</button>
+          <button data-val="calc" data-i18n="calcModeBtn">布圈長度＋碼表計時</button>
+        </div>
+      </div>
+
+      <div id="directSpeedField" class="field">
+        <label data-i18n="actualSpeedLabel">實測布速</label>
+        <div class="unit-input">
+          <input type="number" id="actualSpeed" min="0" step="1">
+          <span>m/min</span>
+        </div>
+      </div>
+
+      <div id="calcSpeedFields" style="display:none;">
+        <div class="row2">
+          <div class="field">
+            <label data-i18n="loopLengthLabel">布圈總長度</label>
+            <div class="unit-input">
+              <input type="number" id="loopLength" min="0" step="0.1">
+              <span>m</span>
+            </div>
+          </div>
+          <div class="field">
+            <label data-i18n="loopSecondsLabel">跑一圈所需時間</label>
+            <div class="unit-input">
+              <input type="number" id="loopSeconds" min="0" step="0.1">
+              <span>秒</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="note" id="speedNote"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 5: 染程設定 ============ -->
+  <section class="panel" id="panel-process">
+    <div class="card">
+      <button type="button" class="stage-toggle" data-stage-toggle="pretreat">
+        <h2 data-i18n="pretreatTitle">前處理</h2>
+        <span class="stage-chevron">▾</span>
+      </button>
+      <div class="stage-body" data-stage-body="pretreat" style="display:none;">
+        <p class="sub" data-i18n="stageSub">每段填「爬升時間」＋「保溫時間」，起始溫度預設接續上一段結束溫度</p>
+        <div class="field">
+          <label data-i18n="templateSelectLabel">選擇範本</label>
+          <select class="template-select" data-stage="pretreat"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="stageStartTempLabel">起始溫度</label>
+          <div class="unit-input">
+            <input type="number" id="pretreatStartTemp" min="0" step="1" value="40">
+            <span>°C</span>
+          </div>
+        </div>
+        <div class="weigh-list" id="pretreatSegRows"></div>
+        <button class="add-row-btn" id="addPretreatSeg" data-i18n="addStageBtn">＋ 新增階段</button>
+        <button class="add-row-btn" id="savePretreatTemplate" data-i18n="saveTemplateBtn">另存為範本</button>
+        <button class="clear-link" id="clearPretreatBtn" data-i18n="clearBtn" style="display:block;margin-top:8px;text-align:center;width:100%;">清除</button>
+        <div id="pretreatChartWrap" class="stage-chart-wrap" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <button type="button" class="stage-toggle" data-stage-toggle="dye">
+        <h2 data-i18n="dyeStageTitle">染色</h2>
+        <span class="stage-chevron">▾</span>
+      </button>
+      <div class="stage-body" data-stage-body="dye" style="display:none;">
+        <div class="field">
+          <label data-i18n="templateSelectLabel">選擇範本</label>
+          <select class="template-select" data-stage="dye"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="stageStartTempLabel">起始溫度</label>
+          <div class="unit-input">
+            <input type="number" id="dyeStartTemp" min="0" step="1" value="40">
+            <span>°C</span>
+          </div>
+        </div>
+        <div class="note" id="dyeRecipeRefBox"></div>
+        <div class="weigh-list" id="dyeSegRows"></div>
+        <button class="add-row-btn" id="addDyeSeg" data-i18n="addStageBtn">＋ 新增階段</button>
+        <button class="add-row-btn" id="saveDyeTemplate" data-i18n="saveTemplateBtn">另存為範本</button>
+        <button class="clear-link" id="clearDyeBtn" data-i18n="clearBtn" style="display:block;margin-top:8px;text-align:center;width:100%;">清除</button>
+        <div id="dyeChartWrap" class="stage-chart-wrap" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <button type="button" class="stage-toggle" data-stage-toggle="wash">
+        <h2 data-i18n="washStageTitle">水洗</h2>
+        <span class="stage-chevron">▾</span>
+      </button>
+      <div class="stage-body" data-stage-body="wash" style="display:none;">
+        <div class="field">
+          <label data-i18n="templateSelectLabel">選擇範本</label>
+          <select class="template-select" data-stage="wash"></select>
+        </div>
+        <div class="field">
+          <label data-i18n="stageStartTempLabel">起始溫度</label>
+          <div class="unit-input">
+            <input type="number" id="washStartTemp" min="0" step="1" value="40">
+            <span>°C</span>
+          </div>
+        </div>
+        <div class="weigh-list" id="washSegRows"></div>
+        <button class="add-row-btn" id="addWashSeg" data-i18n="addStageBtn">＋ 新增階段</button>
+        <button class="add-row-btn" id="saveWashTemplate" data-i18n="saveTemplateBtn">另存為範本</button>
+        <button class="clear-link" id="clearWashBtn" data-i18n="clearBtn" style="display:block;margin-top:8px;text-align:center;width:100%;">清除</button>
+        <div id="washChartWrap" class="stage-chart-wrap" style="overflow-x:auto;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TAB 4: 工卡預覽 ============ -->
+  <section class="panel" id="panel-print">
+    <div class="card no-print">
+      <div class="download-menu-wrap" id="downloadMenuWrap">
+        <button class="btn" id="downloadMenuBtn" onclick="toggleDownloadMenu()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+          <span class="download-btn-label" data-i18n="downloadBtnLabel">下載</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M19 9l-7 7-7-7"/></svg>
+        </button>
+        <div class="download-menu hidden-el" id="downloadMenu">
+          <button type="button" onclick="closeDownloadMenu();generateWorkOrderImage();" data-i18n="downloadImgBtnLabel">下載工卡圖片</button>
+          <button type="button" onclick="closeDownloadMenu();printWorkOrder();" data-i18n="downloadPdfBtnLabel">另存為 PDF</button>
+        </div>
+      </div>
+      <p class="sub" id="downloadHint" data-i18n="downloadHint" style="margin-top:10px;margin-bottom:0;">iPhone／iPad：長按下方圖片即可存到相簿</p>
+    </div>
+
+    <div class="card no-print" id="imgPreviewCard" style="display:none;">
+      <div id="imgPreviewWrap" style="text-align:center;"></div>
+    </div>
+
+
+    <div class="cardpaper" id="panel-print-content">
+      <div class="cardpaper-title-row">
+        <span class="cardpaper-accent-bar"></span>
+        <h2 data-i18n="appTitle">浸染試染工具</h2>
+      </div>
+      <div class="meta" id="printDate"></div>
+
+      <div class="print-section">
+        <div class="grp-title" data-i18n="orderInfoTitle">訂單資訊</div>
+        <div class="order-info-box">
+          <div class="kv">
+            <div class="k" data-i18n="customerPh">客戶</div><div class="v" id="p-customer">–</div>
+            <div class="k" data-i18n="colorOrderPh">顏色/訂單號</div><div class="v" id="p-colorOrder">–</div>
+          </div>
+          <div class="kv" style="margin-top:8px;">
+            <div class="k" data-i18n="fabricDescPh" style="flex:0 0 auto;">布料類型</div><div class="v" id="p-fabricDesc" style="grid-column:2/-1;">–</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="print-section">
+        <div class="grp-title" data-i18n="basicInfoTitle">基本資料</div>
+        <div class="kv">
+          <div class="k" data-i18n="fabricWeightLabel">布重</div><div class="v" id="p-weight">–</div>
+          <div class="k" data-i18n="ratioColLabel">浴比</div><div class="v" id="p-ratio">–</div>
+          <div class="k" data-i18n="fabricTreatmentLabel">布種</div><div class="v" id="p-type">–</div>
+          <div class="k">OWF%</div><div class="v" id="p-owf">–</div>
+        </div>
+      </div>
+
+      <div class="print-section">
+        <div class="grp-title" data-i18n="recipeGrpTitle">配方</div>
+        <div class="kv">
+          <div class="k" data-i18n="totalLiquorColLabel">總浴液量</div><div class="v" id="p-liquor">–</div>
+          <div class="k" data-i18n="saltDoseColLabel">電解質用量</div><div class="v" id="p-salt">–</div>
+          <div class="k" data-i18n="saltTotalColLabel">電解質總量</div><div class="v" id="p-saltTotal">–</div>
+          <div class="k" data-i18n="fixTimeLabel">固著時間</div><div class="v" id="p-fixTime">–</div>
+        </div>
+        <div class="kv" id="p-alkaliRows" style="margin-top:8px;"></div>
+      </div>
+
+      <div class="print-section">
+        <div class="grp-title" data-i18n="dyeWeighGrpTitle">染料秤量</div>
+        <table class="ref" style="margin-top:0;">
+          <thead><tr><th data-i18n="itemNameCol">品名</th><th data-i18n="doseCol">用量</th><th data-i18n="weighResultCol">秤重</th></tr></thead>
+          <tbody id="p-dyeTable"></tbody>
+        </table>
+        <div class="kv" style="margin-top:8px;">
+          <div class="k" id="p-dyeTotal" style="grid-column:1/-1;text-align:left;color:var(--ink);">–</div>
+        </div>
+      </div>
+
+      <div class="print-section">
+        <div class="grp-title" data-i18n="auxWeighGrpTitle">助劑秤量</div>
+        <table class="ref" style="margin-top:0;">
+          <thead><tr><th data-i18n="itemNameCol">品名</th><th data-i18n="doseCol">用量</th><th data-i18n="weighResultCol">秤重</th></tr></thead>
+          <tbody id="p-auxTable"></tbody>
+        </table>
+        <div class="kv" style="margin-top:8px;">
+          <div class="k" id="p-auxTotal" style="grid-column:1/-1;text-align:left;color:var(--ink);">–</div>
+        </div>
+      </div>
+
+      <div class="print-section" id="p-pretreatChartSection" style="display:none;">
+        <div class="grp-title" data-i18n="pretreatTitle">前處理</div>
+        <div id="p-pretreatChart" style="overflow-x:auto;"></div>
+      </div>
+      <div class="print-section" id="p-dyeChartSection" style="display:none;">
+        <div class="grp-title" data-i18n="dyeStageTitle">染色</div>
+        <div id="p-dyeChart" style="overflow-x:auto;"></div>
+      </div>
+      <div class="print-section" id="p-washChartSection" style="display:none;">
+        <div class="grp-title" data-i18n="washStageTitle">水洗</div>
+        <div id="p-washChart" style="overflow-x:auto;"></div>
+      </div>
+
+      <div class="print-section" id="p-resultSection" style="display:none;">
+        <div class="grp-title" data-i18n="dyeResultSection">染色結果記錄</div>
+        <div id="p-resultPhotos" class="result-photos-grid"></div>
+        <div id="p-resultNotes" style="white-space:pre-wrap;"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 染色結果分頁：拍照/上傳照片(自動壓縮)+ 各自說明 + 整體總結，跟配方一起存檔/載入 -->
+  <!-- 特意放在 panel-print 之後（DOM順序），列印時兩個一起強制顯示才會照正確順序排列 -->
+  <section class="panel" id="panel-reference">
+    <div class="card">
+      <div class="cardpaper-title-row" style="margin-bottom:14px;">
+        <span class="cardpaper-accent-bar"></span>
+        <h2 style="margin:0;" data-i18n="dyeResultSection">染色結果記錄</h2>
+      </div>
+
+      <div class="result-photo-buttons">
+        <label class="result-photo-btn primary">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <span data-i18n="takePhoto">拍照</span>
+          <input type="file" accept="image/*" capture="environment" class="hidden-file-input" onchange="handleResultPhotoInput(event)">
+        </label>
+        <label class="result-photo-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+          <span data-i18n="uploadPhoto">上傳照片</span>
+          <input type="file" accept="image/*" multiple class="hidden-file-input" onchange="handleResultPhotoInput(event)">
+        </label>
+      </div>
+
+      <div id="resultPhotosGrid" class="result-photos-grid"></div>
+
+      <label class="input-label" data-i18n="dyeResultLabel">染色結果總結</label>
+      <textarea id="dyeResultNotes" rows="4" data-i18n-placeholder="dyeResultPlaceholder" placeholder="記錄染色結果、色差、備註..."></textarea>
+    </div>
+  </section>
+
+  <!-- 染色結果照片放大檢視 -->
+  <div id="photoLightbox" class="photo-lightbox hidden-el" onclick="closePhotoLightbox()">
+    <img id="photoLightboxImg" alt="">
+    <button type="button" onclick="closePhotoLightbox()" data-i18n="closeButton">關閉</button>
+  </div>
+
+</main>
+
+<footer class="app-footer no-print">
+  <a href="https://everlight-ccbu.com/" target="_blank" rel="noopener">everlight-ccbu.com</a>
+  <div class="app-version">v2026.09.12</div>
+</footer>
+
+<script src="./data.js"></script>
+<script src="./app.js"></script>
+</body>
+</html>
