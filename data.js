@@ -228,13 +228,13 @@ const BUILTIN_TEMPLATES = {
       { targetTemp:60, rampMin:0, holdMin:30, note:"固色保溫" },
       { targetTemp:60, rampMin:0, holdMin:45, note:"洗淨", drain:true }
     ]},
-    { id:"bd_m3", name:"染法三：高溫移染法（Viscose/Tencel/Modal/厚重織物）", startTemp:30, segs:[
-      { targetTemp:30, rampMin:0,  holdMin:10, note:"加染料" },
-      { targetTemp:30, rampMin:0,  holdMin:10, note:"加芒硝1/2" },
-      { targetTemp:30, rampMin:0,  holdMin:10, note:"加芒硝2/2" },
-      { targetTemp:30, rampMin:0,  holdMin:10 },
+    { id:"bd_m3", name:"染法三：高溫移染法（Viscose/Tencel/Modal/厚重織物）", startTemp:50, segs:[
+      { targetTemp:50, rampMin:0,  holdMin:10, note:"加染料" },
+      { targetTemp:50, rampMin:0,  holdMin:10, note:"加芒硝1/2" },
+      { targetTemp:50, rampMin:0,  holdMin:10, note:"加芒硝2/2" },
+      { targetTemp:50, rampMin:0,  holdMin:10 },
       { targetTemp:80, rampMin:20, holdMin:20, note:"高溫移染" },
-      { targetTemp:60, rampMin:10, holdMin:30, note:"加鹼劑" },
+      { targetTemp:60, rampMin:15, holdMin:30, note:"加鹼劑" },
       { targetTemp:60, rampMin:0,  holdMin:45, note:"洗淨", drain:true }
     ]},
     { id:"bd_m4", name:"染法四：預加鹼法", startTemp:30, segs:[
@@ -247,15 +247,15 @@ const BUILTIN_TEMPLATES = {
       { targetTemp:60, rampMin:15, holdMin:30, note:"加鹼劑" },
       { targetTemp:60, rampMin:0,  holdMin:45, note:"洗淨", drain:true }
     ]},
-    { id:"bd_m5", name:"染法五：Turquoise Blue G 專用染法", startTemp:30, segs:[
-      { targetTemp:30, rampMin:0,  holdMin:10, note:"加染料" },
-      { targetTemp:30, rampMin:0,  holdMin:10, note:"加芒硝1/2" },
-      { targetTemp:30, rampMin:0,  holdMin:10, note:"加芒硝2/2" },
-      { targetTemp:30, rampMin:0,  holdMin:10 },
-      { targetTemp:80, rampMin:15, holdMin:15 },
-      { targetTemp:90, rampMin:15, holdMin:20, note:"加鹼劑" },
-      { targetTemp:90, rampMin:0,  holdMin:30 },
-      { targetTemp:90, rampMin:0,  holdMin:45, note:"洗淨", drain:true }
+    { id:"bd_m5", name:"染法五：Turquoise Blue G 專用染法", startTemp:50, segs:[
+      { targetTemp:50, rampMin:0,  holdMin:10, note:"加染料" },
+      { targetTemp:50, rampMin:0,  holdMin:10, note:"加芒硝1/2" },
+      { targetTemp:50, rampMin:0,  holdMin:10, note:"加芒硝2/2" },
+      { targetTemp:50, rampMin:0,  holdMin:10 },
+      { targetTemp:90, rampMin:25, holdMin:20 },
+      { targetTemp:80, rampMin:8,  holdMin:20 },
+      { targetTemp:80, rampMin:0,  holdMin:30, note:"加鹼劑" },
+      { targetTemp:80, rampMin:0,  holdMin:45, note:"洗淨", drain:true }
     ]},
     { id:"bd_nylon6", name:"尼龍6 繩狀/經軸/筒子紗染色（A-13）", startTemp:40, segs:[
       { targetTemp:40, rampMin:0,  holdMin:10, note:"加均染劑" },
