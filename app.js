@@ -509,7 +509,7 @@ function recomputeBath(){
   }else{
     const waterDiff = totalWater - targetWater;
     waterDiffEl.className = "note";
-    waterDiffEl.textContent = (state.lang === "en" ? "vs recipe target: " : "較配方目標：") + fmtSigned(waterDiff,0) + " L";
+    waterDiffEl.textContent = (state.lang === "en" ? "vs target: " : "較目標：") + fmtSigned(waterDiff,0) + " L";
   }
   const saltDiffEl = document.getElementById("bathSaltTotalDiff");
   if(document.getElementById("bathSaltTotal").value === "" || targetSaltKg<=0){
@@ -518,7 +518,7 @@ function recomputeBath(){
   }else{
     const saltDiff = saltTotalKg - targetSaltKg;
     saltDiffEl.className = "note";
-    saltDiffEl.textContent = (state.lang === "en" ? "vs recipe target: " : "較配方目標：") + fmtSigned(saltDiff,2) + " kg";
+    saltDiffEl.textContent = (state.lang === "en" ? "vs target: " : "較目標：") + fmtSigned(saltDiff,2) + " kg";
   }
 
   // --- 理論比重（依目前實際輸入的水量＋已投芒硝量反推，不是配方原始目標）---
@@ -535,7 +535,7 @@ function recomputeBath(){
     const sgDiff = sg - expectedSG;
     const sgIsMinor = Math.abs(sgDiff) < 0.001; // 比重差在 0.001 內視為正常誤差
     measuredDiffEl.className = sgIsMinor ? "note good" : "note danger";
-    measuredDiffEl.textContent = (state.lang === "en" ? "vs theoretical (current entries): " : "較理論比重（依目前實際輸入）：") + fmtSigned(sgDiff,4);
+    measuredDiffEl.textContent = (state.lang === "en" ? "vs theoretical (actual): " : "較理論比重(實際)：") + fmtSigned(sgDiff,4);
   }
 
   const conc = interpConcentration(state.temp, sg); // g/L，比重反查出來的目前實際濃度
