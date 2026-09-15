@@ -524,29 +524,40 @@ function recomputeBath(){
   // --- 理論比重（依目前實際輸入的水量＋已投芒硝量反推，不是配方原始目標）---
   const actualConc = totalWater>0 ? (saltTotalKg*1000/totalWater) : null; // g/L
   const expectedSG = actualConc!==null ? inverseSGFromConcentration(state.temp, actualConc) : null;
-  document.getElementById("expectedSGOut").textContent = expectedSG!==null ? expectedSG.toFixed(4) : "–";
 
-  // --- 量測比重（實測）跟理論比重（依實際輸入）的差異 ---
+  // --- 量測比重（實測）的附註：不管有沒有輸入實測值，都先把目前理論比重顯示出來，
+  // 有輸入實測值的話再接著顯示差異——直接放在量測比重下面，強化「這格是重點」的視覺
   const measuredDiffEl = document.getElementById("measuredSGDiff");
-  if(!sg || isNaN(sg) || expectedSG===null){
+  if(expectedSG === null){
     measuredDiffEl.textContent = "";
     measuredDiffEl.className = "note";
+  }else if(!sg || isNaN(sg)){
+    measuredDiffEl.className = "note";
+    measuredDiffEl.textContent = (state.lang === "en" ? "Current theoretical SG: " : "目前理論比重：") + expectedSG.toFixed(4);
   }else{
     const sgDiff = sg - expectedSG;
     const sgIsMinor = Math.abs(sgDiff) < 0.001; // 比重差在 0.001 內視為正常誤差
     measuredDiffEl.className = sgIsMinor ? "note good" : "note danger";
-    measuredDiffEl.textContent = (state.lang === "en" ? "vs theoretical (actual): " : "較理論比重(實際)：") + fmtSigned(sgDiff,4);
+    measuredDiffEl.textContent = (state.lang === "en"
+      ? `Current theoretical SG: ${expectedSG.toFixed(4)} (vs actual: ${fmtSigned(sgDiff,4)})`
+      : `目前理論比重：${expectedSG.toFixed(4)}（較實測差：${fmtSigned(sgDiff,4)}）`);
   }
 
   const conc = interpConcentration(state.temp, sg); // g/L，比重反查出來的目前實際濃度
   const saltTotalG = saltTotalKg * 1000;
   const actualWater = conc ? saltTotalG / conc : null; // L，回推缸內實際水量
+  // 還需補水量／建議加芒硝量：這是「現在該怎麼校正」，比較基準是「目前水量」（現場實際填的），不是配方目標
   const diff = (actualWater !== null && totalWater) ? (totalWater - actualWater) : null; // >0：水太少（濃度太高）；<0：水太多（濃度太低）
-  const startLevel = (actualWater !== null && totalWater) ? (actualWater/totalWater*100) : null;
+  // 目前液位比例：這是「規劃用」的資訊，比較基準改成配方「目標總水量」，回答「離最終目標還有多少空間」
+  const startLevel = (actualWater !== null && targetWater>0) ? (actualWater/targetWater*100) : null;
 
   document.getElementById("sgConcOut").innerHTML = conc!==null ? `${fmt(conc,1)}<small>g/L</small>` : "–";
   document.getElementById("actualWaterOut").innerHTML = actualWater!==null ? `${fmt(actualWater,0)}<small>L</small>` : "–";
   document.getElementById("startLevelOut").innerHTML = startLevel!==null ? `${fmt(startLevel,0)}<small>%</small>` : "–";
+  const startLevelDetailEl = document.getElementById("startLevelDetailOut");
+  startLevelDetailEl.textContent = (startLevel!==null)
+    ? `${fmt(actualWater,0)} / ${fmt(targetWater,0)} L` + (state.lang === "en" ? " (target)" : "（目標）")
+    : "–";
 
   const labelEl = document.getElementById("makeupWaterLabelEl");
   const valueEl = document.getElementById("makeupWaterOut");
