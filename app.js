@@ -409,6 +409,9 @@ function recalcAll(skipLookup){
   const saltDose = Number(document.getElementById("saltDose").value) || 0;
   const saltTotalKg = saltDose * totalLiquor / 1000;
 
+  document.getElementById("totalLiquorLabelEl").textContent = (state.lang === "en")
+    ? `Total liquor (fabric ${fmt(fabricWeightKg,0)}kg × ratio 1:${fmt(ratio,0)})`
+    : `總浴液量（布重 ${fmt(fabricWeightKg,0)}kg × 浴比 1:${fmt(ratio,0)}）`;
   document.getElementById("totalLiquorOut").innerHTML = `${fmt(totalLiquor,0)}<small>L</small>`;
   document.getElementById("saltTotalOut").innerHTML = `${fmt(saltTotalKg,1)}<small>kg</small>`;
 
@@ -536,14 +539,14 @@ function recomputeBath(){
     measuredDiffEl.className = "note";
   }else if(!sg || isNaN(sg)){
     measuredDiffEl.className = "note";
-    measuredDiffEl.textContent = (state.lang === "en" ? "Current theoretical SG: " : "目前理論比重：") + expectedSG.toFixed(4);
+    measuredDiffEl.textContent = (state.lang === "en" ? "Theoretical SG " : "理論比重 ") + expectedSG.toFixed(4);
   }else{
     const sgDiff = sg - expectedSG;
     const sgIsMinor = Math.abs(sgDiff) < 0.001; // 比重差在 0.001 內視為正常誤差
     measuredDiffEl.className = sgIsMinor ? "note good" : "note danger";
     measuredDiffEl.textContent = (state.lang === "en"
-      ? `Current theoretical SG: ${expectedSG.toFixed(4)} (vs actual: ${fmtSigned(sgDiff,4)})`
-      : `目前理論比重：${expectedSG.toFixed(4)}（較實測差：${fmtSigned(sgDiff,4)}）`);
+      ? `Theoretical SG ${expectedSG.toFixed(4)}, diff ${fmtSigned(sgDiff,4)}`
+      : `理論比重 ${expectedSG.toFixed(4)}，差 ${fmtSigned(sgDiff,4)}`);
   }
 
   const conc = interpConcentration(state.temp, sg); // g/L，比重反查出來的目前實際濃度
@@ -557,7 +560,7 @@ function recomputeBath(){
   document.getElementById("sgConcOut").innerHTML = conc!==null ? `${fmt(conc,1)}<small>g/L</small>` : "–";
   document.getElementById("actualWaterOut").innerHTML = actualWater!==null ? `${fmt(actualWater,0)}<small>L</small>` : "–";
   document.getElementById("startLevelOut").innerHTML = startLevel!==null ? `${fmt(startLevel,0)}<small>%</small>` : "–";
-  document.getElementById("startLevelDetailOut").textContent = startLevel!==null ? `${fmt(actualWater,0)} / ${fmt(targetWater,0)} L` : "–";
+  document.getElementById("startLevelDetailOut").textContent = startLevel!==null ? `${fmt(actualWater,0)}/${fmt(targetWater,0)}L` : "–";
 
   const labelEl = document.getElementById("makeupWaterLabelEl");
   const valueEl = document.getElementById("makeupWaterOut");
@@ -1805,6 +1808,10 @@ function restoreAutoSavedState(){
 document.addEventListener("input", autoSaveState);
 document.addEventListener("change", autoSaveState);
 restoreAutoSavedState();
+// 一定要在初始化時主動呼叫一次，不能只靠使用者切換語言才觸發——
+// 不然像「目前進水量」這種標籤，字典裡的翻譯已經改了，畫面卻還是顯示 HTML 裡沒同步更新的舊字，
+// 要等使用者手動切換一次語言才會被刷新成正確文字
+applyLanguage();
 
 // 註冊 Service Worker，讓工具可以離線使用、也能被瀏覽器判定為可安裝的 PWA
 if("serviceWorker" in navigator){

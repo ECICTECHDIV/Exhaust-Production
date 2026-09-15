@@ -399,6 +399,18 @@
   }
   .result-box.wide{grid-column:1 / -1;}
 
+  /* 這兩個地方文字偏長，手機窄螢幕容易被逼著換行，看起來很擠；
+     盡量維持單行，真的塞不下才用省略號，不要讓瀏覽器自己決定怎麼折行 */
+  #measuredSGDiff, #startLevelDetailOut{
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  @media (max-width:400px){
+    #measuredSGDiff{ font-size:.78rem; }
+    #startLevelDetailOut{ font-size:.8rem; }
+  }
+
   /* 浴量校正頁的「校正」結論格：底色固定用琥珀色，不管數字好壞都一樣，
      跟其他淡brand色的 result-box 做出區隔，讓人一眼就知道這格是這頁的重點結論；
      維持在原本 4 格格線裡的位置，只有這一格視覺不一樣 */
@@ -1353,7 +1365,7 @@
 
       <div class="result-grid">
         <div class="result-box wide">
-          <div class="k" data-i18n="totalLiquorLabel">總浴液量（布重 × 浴比）</div>
+          <div class="k" id="totalLiquorLabelEl" data-i18n="totalLiquorLabel">總浴液量（布重 × 浴比）</div>
           <div class="v" id="totalLiquorOut">–<small>L</small></div>
         </div>
         <div class="result-box">
@@ -1385,15 +1397,15 @@
       <div class="note" style="margin-bottom:10px;" data-i18n="bathRefTitle">配方參考值</div>
       <div class="result-grid-4">
         <div class="result-box">
-          <div class="k" data-i18n="targetRatioLabel">浴比</div>
+          <div class="k" data-i18n="targetRatioLabel">目標浴比</div>
           <div class="v" id="targetRatioOut">–</div>
-          <div class="k" style="margin-top:8px;" data-i18n="targetWaterLabel">總水量(目標)</div>
+          <div class="k" style="margin-top:8px;" data-i18n="targetWaterLabel">目標總浴量</div>
           <div class="v small-text" id="targetWaterOut">–<small>L</small></div>
         </div>
         <div class="result-box">
-          <div class="k" data-i18n="targetSaltDoseLabel">芒硝濃度(目標)</div>
+          <div class="k" data-i18n="targetSaltDoseLabel">目標芒硝濃度</div>
           <div class="v" id="targetSaltDoseOut">–<small>g/L</small></div>
-          <div class="k" style="margin-top:8px;" data-i18n="targetSaltTotalLabel">芒硝重量(目標)</div>
+          <div class="k" style="margin-top:8px;" data-i18n="targetSaltTotalLabel">目標芒硝重量</div>
           <div class="v small-text" id="targetSaltTotalOut">–<small>kg</small></div>
         </div>
         <div class="result-box">
@@ -1405,7 +1417,7 @@
           </div>
         </div>
         <div class="result-box">
-          <div class="k" data-i18n="targetSGLabel">理論比重(目標)</div>
+          <div class="k" data-i18n="targetSGLabel">目標理論比重</div>
           <div class="v" id="targetSGOut">–</div>
         </div>
       </div>
@@ -1427,7 +1439,7 @@
 
       <div class="row2">
         <div class="field">
-          <label data-i18n="bathTotalWaterLabel">目前水量</label>
+          <label data-i18n="bathTotalWaterLabel">目前進水量</label>
           <div class="unit-input">
             <input type="number" id="bathTotalWater" min="0" step="1">
             <span>L</span>
