@@ -1442,48 +1442,29 @@
 
       <div class="divider"></div>
 
-      <div class="row2">
-        <div class="field">
-          <label data-i18n="bathTotalWaterLabel">目前進水量</label>
-          <div class="unit-input">
-            <input type="number" id="bathTotalWater" min="0" step="1">
-            <span>L</span>
-          </div>
-          <div class="note" id="bathTotalWaterDiff"></div>
-        </div>
-        <div class="field">
-          <label data-i18n="bathSaltTotalLabel">已投芒硝量</label>
-          <div class="unit-input">
-            <input type="number" id="bathSaltTotal" min="0" step="0.1">
-            <span>kg</span>
-          </div>
-          <div class="note" id="bathSaltTotalDiff"></div>
-        </div>
-      </div>
-
       <div class="field">
         <label data-i18n="measuredSGLabel">量測比重(手動輸入)</label>
         <input type="number" id="measuredSG" min="0.9" max="1.2" step="0.0001" data-i18n-placeholder="measuredSGPlaceholder" placeholder="請輸入實測比重">
         <div class="note" id="measuredSGDiff"></div>
       </div>
 
-      <div class="result-grid">
-        <div class="result-box">
-          <div class="k" data-i18n="sgConcLabel">反查濃度</div>
-          <div class="v" id="sgConcOut">–<small>g/L</small></div>
-        </div>
+      <div class="result-grid-4">
         <div class="result-box">
           <div class="k" data-i18n="actualWaterLabel">缸內實際水量</div>
           <div class="v" id="actualWaterOut">–<small>L</small></div>
-        </div>
-        <div class="result-box calibration">
-          <div class="k"><span class="calib-tag" data-i18n="calibTag">校正：</span><span id="makeupWaterLabelEl">還需補水量</span></div>
-          <div class="v" id="makeupWaterOut">–<small>L</small></div>
         </div>
         <div class="result-box">
           <div class="k" data-i18n="startLevelLabel">目前液位比例</div>
           <div class="v" id="startLevelOut">–<small>%</small></div>
           <div class="v small-text" id="startLevelDetailOut">–</div>
+        </div>
+        <div class="result-box">
+          <div class="k" data-i18n="sgConcLabel">缸內芒硝濃度</div>
+          <div class="v" id="sgConcOut">–<small>g/L</small></div>
+        </div>
+        <div class="result-box calibration">
+          <div class="k"><span class="calib-tag" data-i18n="calibTag">校正：</span><span id="makeupWaterLabelEl">剩餘補水空間</span></div>
+          <div class="v" id="makeupWaterOut">–<small>L</small></div>
         </div>
       </div>
       <div class="note" id="bathNote"></div>
