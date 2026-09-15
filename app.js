@@ -489,14 +489,14 @@ function updateBathReference(){
   const ratio = Number(document.getElementById("liquorRatio").value) || 0;
   const saltDoseRecipe = Number(document.getElementById("saltDose").value) || 0; // g/L，配方卡設定的濃度
 
-  // 配方卡布重有填才顯示這行參考資訊，樣式比照配方卡「總浴液量（布重×浴比）」那個標籤；
-  // 純粹把這頁當獨立工具用、沒填配方卡的人不會看到這行
+  // 配方卡布重有填才顯示這行參考資訊；純粹把這頁當獨立工具用、沒填配方卡的人不會看到這行。
+  // 拆成兩行顯示，不用括號跟乘號——手機這格很窄，塞成一行容易被逼著硬折行，看起來很擠
   const sourceInfoEl = document.getElementById("recipeSourceInfo");
   if(fabricWeightKg > 0){
     sourceInfoEl.style.display = "";
-    sourceInfoEl.textContent = (state.lang === "en")
-      ? `(fabric ${fmt(fabricWeightKg,0)}kg × ratio 1:${fmt(ratio,0)})`
-      : `（布重 ${fmt(fabricWeightKg,0)}kg × 浴比 1:${fmt(ratio,0)}）`;
+    sourceInfoEl.innerHTML = (state.lang === "en")
+      ? `fabric ${fmt(fabricWeightKg,0)}kg<br>ratio 1:${fmt(ratio,0)}`
+      : `布重 ${fmt(fabricWeightKg,0)}kg<br>浴比 1:${fmt(ratio,0)}`;
   }else{
     sourceInfoEl.style.display = "none";
   }
