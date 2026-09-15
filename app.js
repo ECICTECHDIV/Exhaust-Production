@@ -499,7 +499,10 @@ function recomputeBath(){
 
   const totalWater = Number(document.getElementById("bathTotalWater").value) || 0; // 現場實際總水量
   const saltTotalKg = Number(document.getElementById("bathSaltTotal").value) || 0; // 現場實際已投芒硝量
-  const sg = Number(document.getElementById("measuredSG").value); // 比重計實測值（手動輸入，無預設）
+  const measuredSGRaw = document.getElementById("measuredSG").value;
+  // 注意：Number("") 會算出 0，不是「沒有值」，這裡要先擋掉空字串，
+  // 不然比重 0 會被查表函式夾到表格最低那一筆，算出一堆看起來像真的、其實沒意義的數字
+  const sg = measuredSGRaw === "" ? NaN : Number(measuredSGRaw); // 比重計實測值（手動輸入，無預設）
 
   // --- 目前水量／已投芒硝量：跟配方目標的差異標示（正值＝比配方多，負值＝比配方少）---
   const waterDiffEl = document.getElementById("bathTotalWaterDiff");
