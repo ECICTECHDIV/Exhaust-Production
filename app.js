@@ -74,7 +74,11 @@ const state = {
   machineType: "jet",
   weightGrade: "light",
   ratioGrade: "mid",
-  measureMode: "direct"
+  measureMode: "direct",
+  targetWaterManual: false,     // 「目標總浴量」是否被使用者手動改過（改過就不再被配方卡覆蓋）
+  targetSaltDoseManual: false,  // 「目標芒硝濃度」是否被使用者手動改過
+  bathTotalWaterManual: false,  // 「目前進水量」是否被使用者手動改過
+  bathSaltTotalManual: false    // 「已投芒硝量」是否被使用者手動改過
 };
 
 
@@ -448,9 +452,8 @@ function recalcAll(skipLookup){
     ? `<span>Total weight: ${fmtWeight(auxGrams)}</span><span>Total liquid: ${fmtVolume(auxMl)}</span>`
     : `<span>助劑總重：${fmtWeight(auxGrams)}</span><span>助劑總液量：${fmtVolume(auxMl)}</span>`;
 
-  // --- 帶入浴量校正頁 ---
-  document.getElementById("bathTotalWater").value = totalLiquor.toFixed(0);
-  document.getElementById("bathSaltTotal").value = saltTotalKg.toFixed(2);
+  // --- 帶入浴量校正頁：實際覆寫邏輯交給 updateBathReference()/recomputeBath()，
+  // 那邊會判斷使用者有沒有手動改過，這裡只負責觸發重新計算 ---
   updateBathReference();
 }
 
@@ -462,8 +465,21 @@ createWeighRow(document.getElementById("auxRows"), "滲透劑", "gL", "", false)
 createWeighRow(document.getElementById("auxRows"), "", "gL", "", false);
 
 /* ============ Tab2: 浴量校正 ============ */
-["bathTotalWater","bathSaltTotal"].forEach(id=>{
-  document.getElementById(id).addEventListener("input", recomputeBath);
+document.getElementById("targetWaterInput").addEventListener("input", ()=>{
+  state.targetWaterManual = true;
+  recomputeBath();
+});
+document.getElementById("targetSaltDoseInput").addEventListener("input", ()=>{
+  state.targetSaltDoseManual = true;
+  recomputeBath();
+});
+document.getElementById("bathTotalWater").addEventListener("input", ()=>{
+  state.bathTotalWaterManual = true;
+  recomputeBath();
+});
+document.getElementById("bathSaltTotal").addEventListener("input", ()=>{
+  state.bathSaltTotalManual = true;
+  recomputeBath();
 });
 document.getElementById("measuredSG").addEventListener("input", recomputeBath);
 
@@ -473,35 +489,63 @@ function fmtSigned(value, decimals){
   return sign + fmt(value, decimals);
 }
 
-// 配方參考值（目標值）：從配方卡（布重×浴比、芒硝設定濃度）重新算一次，
-// 純顯示用，不寫進任何輸入框——跟下面可編輯的「目前水量」「已投芒硝量」（現場實際值）分開看。
+// 配方參考值：平常跟著配方卡（布重×浴比、芒硝設定濃度）走，但「目標總浴量」「目標芒硝濃度」
+// 這兩格使用者可以直接手動改——一旦手動改過，就記住這是使用者自己的值，配方卡之後再怎麼調
+// 都不會再蓋過去（state.targetWaterManual / state.targetSaltDoseManual 這兩個旗標各自獨立判斷）。
+// 這樣設計是為了讓「不想輸入配方、只是臨時想用這個液位校正工具」的人，可以跳過配方卡直接在
+// 這兩格自己填數字用；手動改的內容不會寫回配方卡。
 function updateBathReference(){
   const fabricWeightKg = Number(document.getElementById("fabricWeight").value) || 0;
   const ratio = Number(document.getElementById("liquorRatio").value) || 0;
-  const saltDose = Number(document.getElementById("saltDose").value) || 0; // g/L
+  const saltDoseRecipe = Number(document.getElementById("saltDose").value) || 0; // g/L，配方卡設定的濃度
 
-  const targetWater = fabricWeightKg * ratio; // L
-  const targetSaltKg = saltDose * targetWater / 1000; // kg
-  const targetSG = (saltDose > 0) ? inverseSGFromConcentration(state.temp, saltDose) : null;
+  // 配方卡布重有填才顯示這行參考資訊，樣式比照配方卡「總浴液量（布重×浴比）」那個標籤；
+  // 純粹把這頁當獨立工具用、沒填配方卡的人不會看到這行
+  const sourceInfoEl = document.getElementById("recipeSourceInfo");
+  if(fabricWeightKg > 0){
+    sourceInfoEl.style.display = "";
+    sourceInfoEl.textContent = (state.lang === "en")
+      ? `(fabric ${fmt(fabricWeightKg,0)}kg × ratio 1:${fmt(ratio,0)})`
+      : `（布重 ${fmt(fabricWeightKg,0)}kg × 浴比 1:${fmt(ratio,0)}）`;
+  }else{
+    sourceInfoEl.style.display = "none";
+  }
 
-  document.getElementById("targetSaltDoseOut").innerHTML = saltDose>0 ? `${fmt(saltDose,1)}<small>g/L</small>` : "–";
-  document.getElementById("targetSaltTotalOut").innerHTML = targetSaltKg>0 ? `${fmt(targetSaltKg,1)}<small>kg</small>` : "–";
-  document.getElementById("targetRatioOut").textContent = ratio>0 ? `1 : ${fmt(ratio,0)}` : "–";
-  document.getElementById("targetWaterOut").innerHTML = targetWater>0 ? `${fmt(targetWater,0)}<small>L</small>` : "–";
-  document.getElementById("targetSGOut").textContent = targetSG!==null ? targetSG.toFixed(4) : "–";
+  const targetWaterInput = document.getElementById("targetWaterInput");
+  const targetSaltDoseInput = document.getElementById("targetSaltDoseInput");
+
+  if(!state.targetWaterManual){
+    const recipeTargetWater = fabricWeightKg * ratio;
+    targetWaterInput.value = recipeTargetWater > 0 ? recipeTargetWater.toFixed(0) : "";
+  }
+  if(!state.targetSaltDoseManual){
+    targetSaltDoseInput.value = saltDoseRecipe > 0 ? saltDoseRecipe.toFixed(1) : "";
+  }
 
   recomputeBath();
 }
 
 function recomputeBath(){
-  const fabricWeightKg = Number(document.getElementById("fabricWeight").value) || 0;
-  const ratio = Number(document.getElementById("liquorRatio").value) || 0;
-  const saltDose = Number(document.getElementById("saltDose").value) || 0; // g/L，配方卡設定的目標芒硝濃度
-  const targetWater = fabricWeightKg * ratio; // L，配方目標總水量
-  const targetSaltKg = saltDose * targetWater / 1000; // kg，配方目標芒硝總量
+  const targetWater = Number(document.getElementById("targetWaterInput").value) || 0; // L，目標總浴量（配方帶入或手動填）
+  const targetSaltDose = Number(document.getElementById("targetSaltDoseInput").value) || 0; // g/L，目標芒硝濃度（配方帶入或手動填）
+  // 目標芒硝重量／目標理論比重：純計算結果，不能編輯——濃度跟總浴量都能手動填之後，
+  // 重量在數學上就是兩者相乘算出來的，不該讓三個互相牽動的數字同時都手動輸入
+  const targetSaltKg = targetSaltDose * targetWater / 1000; // kg
+  const targetSG = (targetSaltDose > 0) ? inverseSGFromConcentration(state.temp, targetSaltDose) : null;
+  document.getElementById("targetSaltTotalOut").innerHTML = targetSaltKg>0 ? `${fmt(targetSaltKg,1)}<small>kg</small>` : "–";
+  document.getElementById("targetSGOut").textContent = targetSG!==null ? targetSG.toFixed(4) : "–";
 
-  const totalWater = Number(document.getElementById("bathTotalWater").value) || 0; // 現場實際總水量
-  const saltTotalKg = Number(document.getElementById("bathSaltTotal").value) || 0; // 現場實際已投芒硝量
+  // 目前進水量／已投芒硝量：預設跟著上面的目標值走，使用者手動改過之後就不再被覆蓋
+  const bathTotalWaterEl = document.getElementById("bathTotalWater");
+  const bathSaltTotalEl = document.getElementById("bathSaltTotal");
+  if(!state.bathTotalWaterManual){
+    bathTotalWaterEl.value = targetWater > 0 ? targetWater.toFixed(0) : "";
+  }
+  if(!state.bathSaltTotalManual){
+    bathSaltTotalEl.value = targetSaltKg > 0 ? targetSaltKg.toFixed(2) : "";
+  }
+  const totalWater = Number(bathTotalWaterEl.value) || 0; // 現場實際總水量
+  const saltTotalKg = Number(bathSaltTotalEl.value) || 0; // 現場實際已投芒硝量
   const measuredSGRaw = document.getElementById("measuredSG").value;
   // 注意：Number("") 會算出 0，不是「沒有值」，這裡要先擋掉空字串，
   // 不然比重 0 會被查表函式夾到表格最低那一筆，算出一堆看起來像真的、其實沒意義的數字
@@ -509,7 +553,7 @@ function recomputeBath(){
 
   // --- 目前水量／已投芒硝量：跟配方目標的差異標示（正值＝比配方多，負值＝比配方少）---
   const waterDiffEl = document.getElementById("bathTotalWaterDiff");
-  if(document.getElementById("bathTotalWater").value === "" || targetWater<=0){
+  if(bathTotalWaterEl.value === "" || targetWater<=0){
     waterDiffEl.textContent = "";
     waterDiffEl.className = "note";
   }else{
@@ -518,7 +562,7 @@ function recomputeBath(){
     waterDiffEl.textContent = (state.lang === "en" ? "vs target: " : "較目標：") + fmtSigned(waterDiff,0) + " L";
   }
   const saltDiffEl = document.getElementById("bathSaltTotalDiff");
-  if(document.getElementById("bathSaltTotal").value === "" || targetSaltKg<=0){
+  if(bathSaltTotalEl.value === "" || targetSaltKg<=0){
     saltDiffEl.textContent = "";
     saltDiffEl.className = "note";
   }else{
@@ -530,6 +574,14 @@ function recomputeBath(){
   // --- 理論比重（依目前實際輸入的水量＋已投芒硝量反推，不是配方原始目標）---
   const actualConc = totalWater>0 ? (saltTotalKg*1000/totalWater) : null; // g/L
   const expectedSG = actualConc!==null ? inverseSGFromConcentration(state.temp, actualConc) : null;
+
+  // 量測比重輸入框的 placeholder：用灰色提示文字顯示理論值當參考範圍，
+  // 只是提示、不是真的填進欄位——使用者還是要自己拿比重計實測後手動輸入，
+  // 不會有「忘記改、直接把提示值當成實測值送出」的風險
+  const measuredSGInput = document.getElementById("measuredSG");
+  measuredSGInput.placeholder = expectedSG!==null
+    ? (state.lang === "en" ? `≈ ${expectedSG.toFixed(4)}` : `約 ${expectedSG.toFixed(4)}`)
+    : T("measuredSGPlaceholder");
 
   // --- 量測比重（實測）的附註：不管有沒有輸入實測值，都先把目前理論比重顯示出來，
   // 有輸入實測值的話再接著顯示差異——直接放在量測比重下面，強化「這格是重點」的視覺
@@ -552,9 +604,9 @@ function recomputeBath(){
   const conc = interpConcentration(state.temp, sg); // g/L，比重反查出來的目前實際濃度
   const saltTotalG = saltTotalKg * 1000;
   const actualWater = conc ? saltTotalG / conc : null; // L，回推缸內實際水量
-  // 還需補水量／建議加芒硝量：這是「現在該怎麼校正」，比較基準是「目前水量」（現場實際填的），不是配方目標
+  // 還需補水量／建議加芒硝量：這是「現在該怎麼校正」，比較基準是「目前進水量」（現場實際填的），不是配方目標
   const diff = (actualWater !== null && totalWater) ? (totalWater - actualWater) : null; // >0：水太少（濃度太高）；<0：水太多（濃度太低）
-  // 目前液位比例：這是「規劃用」的資訊，比較基準改成配方「目標總水量」，回答「離最終目標還有多少空間」
+  // 目前液位比例：這是「規劃用」的資訊，比較基準是「目標總浴量」，回答「離最終目標還有多少空間」
   const startLevel = (actualWater !== null && targetWater>0) ? (actualWater/targetWater*100) : null;
 
   document.getElementById("sgConcOut").innerHTML = conc!==null ? `${fmt(conc,1)}<small>g/L</small>` : "–";
@@ -575,8 +627,8 @@ function recomputeBath(){
     valueEl.style.color = "";
     note.className = "note";
     note.textContent = state.lang === "en"
-      ? "Please enter fabric weight and liquor ratio on the recipe tab first, then enter the measured specific gravity."
-      : "請先於配方卡輸入布重、浴比，並輸入量測比重。";
+      ? "Please enter the target total liquor and target Glauber's salt concentration above, then enter the measured specific gravity."
+      : "請先在上方填入目標總浴量、目標芒硝濃度，並輸入量測比重。";
   } else if(diff >= 0){
     // 芒硝濃度太高或剛好（缸內水量比目標少或持平）→ 補水稀釋
     labelEl.textContent = T("makeupWaterLabel");
@@ -592,7 +644,7 @@ function recomputeBath(){
         : `芒硝濃度比目標高（水量偏少），建議再補水約 ${fmt(diff,0)} L 以稀釋到目標浴比。`);
   } else {
     // 芒硝濃度太低（缸內水量比目標多，或芒硝溶解/下藥不足）→ 加芒硝補足濃度
-    const extraSaltG = saltDose>0 ? (saltDose*actualWater - saltTotalG) : null;
+    const extraSaltG = targetSaltDose>0 ? (targetSaltDose*actualWater - saltTotalG) : null;
     const extraSaltKg = extraSaltG!==null ? Math.max(0, extraSaltG/1000) : null;
     labelEl.textContent = T("addSaltLabel");
     valueEl.innerHTML = extraSaltKg!==null ? `${fmt(extraSaltKg,1)}<small>kg</small>` : "–";
@@ -605,10 +657,10 @@ function recomputeBath(){
           : `濃度已接近目標，微調加芒硝約 ${fmt(extraSaltKg,1)} kg 即可，可自行斟酌。`)
         : (state.lang === "en"
           ? `Concentration is lower than target (too much water, or Glauber's salt under-dosed) — add approximately ${fmt(extraSaltKg,1)} kg more Glauber's salt to reach the target concentration at the current water volume.`
-          : `芒硝濃度比目標低（水量偏多，或芒硝下藥不足），建議再加芒硝約 ${fmt(extraSaltKg,1)} kg，以目前水量補到目標濃度。`))
+          : `芒硝濃度比目標低（水量偏多，或芒硝下藥不足），建議再加芒硝約 ${fmt(extraSaltKg,1)} kg，以目前進水量補到目標濃度。`))
       : (state.lang === "en"
-        ? "Concentration is lower than target — please set the Glauber's salt dose on the recipe tab first."
-        : "芒硝濃度比目標低，請先於配方卡設定芒硝用量。");
+        ? "Concentration is lower than target — please set the target Glauber's salt concentration above first."
+        : "芒硝濃度比目標低，請先在上方設定目標芒硝濃度。");
   }
 }
 
@@ -1519,6 +1571,14 @@ function collectRecipeData(){
     ratioGradeManual: !!state.ratioGradeManual,
     reelDiameter: document.getElementById("reelDiameter").value,
     temp: state.temp,
+    targetWaterInput: document.getElementById("targetWaterInput").value,
+    targetWaterManual: !!state.targetWaterManual,
+    targetSaltDoseInput: document.getElementById("targetSaltDoseInput").value,
+    targetSaltDoseManual: !!state.targetSaltDoseManual,
+    bathTotalWater: document.getElementById("bathTotalWater").value,
+    bathTotalWaterManual: !!state.bathTotalWaterManual,
+    bathSaltTotal: document.getElementById("bathSaltTotal").value,
+    bathSaltTotalManual: !!state.bathSaltTotalManual,
     measuredSG: document.getElementById("measuredSG").value,
     processStages: {
       pretreatStartTemp: document.getElementById("pretreatStartTemp").value,
@@ -1619,6 +1679,17 @@ function applyRecipeData(data){
 
   state.temp = data.temp || 40;
   document.querySelectorAll("#tempSeg button").forEach(b=>b.classList.toggle("on", Number(b.dataset.val) === state.temp));
+
+  // 浴量校正頁的手動覆寫狀態——要先設好旗標，updateBathReference()/recomputeBath() 才不會
+  // 在載入配方後又把使用者原本手動填的值蓋掉
+  state.targetWaterManual = !!data.targetWaterManual;
+  if(data.targetWaterInput !== undefined) document.getElementById("targetWaterInput").value = data.targetWaterInput;
+  state.targetSaltDoseManual = !!data.targetSaltDoseManual;
+  if(data.targetSaltDoseInput !== undefined) document.getElementById("targetSaltDoseInput").value = data.targetSaltDoseInput;
+  state.bathTotalWaterManual = !!data.bathTotalWaterManual;
+  if(data.bathTotalWater !== undefined) document.getElementById("bathTotalWater").value = data.bathTotalWater;
+  state.bathSaltTotalManual = !!data.bathSaltTotalManual;
+  if(data.bathSaltTotal !== undefined) document.getElementById("bathSaltTotal").value = data.bathSaltTotal;
   if(data.measuredSG !== undefined) document.getElementById("measuredSG").value = data.measuredSG;
 
   const ps = data.processStages || {};
