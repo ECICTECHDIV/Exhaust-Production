@@ -554,10 +554,7 @@ function recomputeBath(){
   document.getElementById("sgConcOut").innerHTML = conc!==null ? `${fmt(conc,1)}<small>g/L</small>` : "–";
   document.getElementById("actualWaterOut").innerHTML = actualWater!==null ? `${fmt(actualWater,0)}<small>L</small>` : "–";
   document.getElementById("startLevelOut").innerHTML = startLevel!==null ? `${fmt(startLevel,0)}<small>%</small>` : "–";
-  const startLevelDetailEl = document.getElementById("startLevelDetailOut");
-  startLevelDetailEl.textContent = (startLevel!==null)
-    ? `${fmt(actualWater,0)} / ${fmt(targetWater,0)} L` + (state.lang === "en" ? " (target)" : "（目標）")
-    : "–";
+  document.getElementById("startLevelDetailOut").textContent = startLevel!==null ? `${fmt(actualWater,0)} / ${fmt(targetWater,0)} L` : "–";
 
   const labelEl = document.getElementById("makeupWaterLabelEl");
   const valueEl = document.getElementById("makeupWaterOut");

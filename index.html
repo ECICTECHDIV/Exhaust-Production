@@ -399,35 +399,17 @@
   }
   .result-box.wide{grid-column:1 / -1;}
 
-  /* 浴量校正頁的「校正」結論框：底色固定用琥珀色，不管數字好壞都一樣，
-     跟其他淡brand色的 result-box 做出區隔，讓人一眼就知道這格是這頁的重點結論 */
-  .calibration-box{
+  /* 浴量校正頁的「校正」結論格：底色固定用琥珀色，不管數字好壞都一樣，
+     跟其他淡brand色的 result-box 做出區隔，讓人一眼就知道這格是這頁的重點結論；
+     維持在原本 4 格格線裡的位置，只有這一格視覺不一樣 */
+  .result-box.calibration{
     background:var(--amber-tint);
     border-left:4px solid var(--amber);
-    border-radius:var(--radius-sm);
-    padding:14px 16px;
-    margin-top:10px;
+    padding-left:12px;
   }
-  .calibration-box .k{
-    font-size:.85rem;
-    color:var(--ink-soft);
-    font-weight:600;
-    margin-bottom:4px;
-  }
-  .calibration-box .calib-tag{
+  .calib-tag{
     color:var(--amber);
     font-weight:800;
-  }
-  .calibration-box .v{
-    font-size:1.35rem;
-    font-weight:700;
-    font-family:var(--font-num);
-    color:var(--ink);
-  }
-  .calibration-box .v small{
-    font-size:.8rem;
-    font-weight:600;
-    margin-left:2px;
   }
 
   .note{
@@ -1468,7 +1450,7 @@
         <div class="note" id="measuredSGDiff"></div>
       </div>
 
-      <div class="result-grid-3">
+      <div class="result-grid">
         <div class="result-box">
           <div class="k" data-i18n="sgConcLabel">反查濃度</div>
           <div class="v" id="sgConcOut">–<small>g/L</small></div>
@@ -1477,16 +1459,15 @@
           <div class="k" data-i18n="actualWaterLabel">缸內實際水量</div>
           <div class="v" id="actualWaterOut">–<small>L</small></div>
         </div>
+        <div class="result-box calibration">
+          <div class="k"><span class="calib-tag" data-i18n="calibTag">校正：</span><span id="makeupWaterLabelEl">還需補水量</span></div>
+          <div class="v" id="makeupWaterOut">–<small>L</small></div>
+        </div>
         <div class="result-box">
           <div class="k" data-i18n="startLevelLabel">目前液位比例</div>
           <div class="v" id="startLevelOut">–<small>%</small></div>
           <div class="v small-text" id="startLevelDetailOut">–</div>
         </div>
-      </div>
-
-      <div class="calibration-box">
-        <div class="k"><span class="calib-tag" data-i18n="calibTag">校正：</span><span id="makeupWaterLabelEl">還需補水量</span></div>
-        <div class="v" id="makeupWaterOut">–<small>L</small></div>
       </div>
       <div class="note" id="bathNote"></div>
     </div>
