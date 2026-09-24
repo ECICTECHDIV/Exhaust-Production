@@ -126,7 +126,7 @@ const TRANSLATIONS = {
     dyeResultLabel:"染色結果總結", dyeResultPlaceholder:"記錄染色結果、色差、備註...",
     photoCaptionPlaceholder:"照片說明", closeButton:"關閉",
     pretreatTitle:"前處理", dyeStageTitle:"染色", washStageTitle:"水洗",
-    stageSub:"每段填「爬升時間」＋「保溫時間」，起始溫度預設接續上一段結束溫度",
+    stageSub:"每段填「爬升時間」＋「保溫時間」，每個大階段從自己的起始溫度開始（換新水）",
     stageStartTempLabel:"起始溫度", addStageBtn:"＋ 新增階段", templateSelectLabel:"選擇範本", saveTemplateBtn:"另存為範本",
     stageNotePh:"備註（例如：加芒硝、加純鹼、皂洗）",
     targetTempLabel:"目標溫度(°C)", rampMinLabel:"爬升(分)", holdMinLabel:"保溫(分)",

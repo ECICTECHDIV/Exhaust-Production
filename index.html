@@ -1322,7 +1322,7 @@
 
       <div class="row2">
         <div class="field">
-          <label data-i18n="saltDoseLabel">電解質（芒硝／鹽）</label>
+          <label data-i18n="saltDoseLabel">芒硝</label>
           <div class="unit-input">
             <input type="number" id="saltDose" min="0" step="1">
             <span>g/L</span>
@@ -1386,7 +1386,7 @@
           <div class="v" id="totalLiquorOut">–<small>L</small></div>
         </div>
         <div class="result-box">
-          <div class="k" data-i18n="saltTotalLabel">電解質總需求量</div>
+          <div class="k" data-i18n="saltTotalLabel">芒硝總需求量</div>
           <div class="v" id="saltTotalOut">–<small>kg</small></div>
         </div>
         <div id="alkaliTotalBoxes" style="display:contents;"></div>
@@ -1625,7 +1625,7 @@
         <span class="stage-chevron">▾</span>
       </button>
       <div class="stage-body" data-stage-body="pretreat" style="display:none;">
-        <p class="sub" data-i18n="stageSub">每段填「爬升時間」＋「保溫時間」，起始溫度預設接續上一段結束溫度</p>
+        <p class="sub" data-i18n="stageSub">每段填「爬升時間」＋「保溫時間」，每個大階段從自己的起始溫度開始（換新水）</p>
         <div class="field">
           <label data-i18n="templateSelectLabel">選擇範本</label>
           <select class="template-select" data-stage="pretreat"></select>
@@ -1753,8 +1753,8 @@
         <div class="grp-title" data-i18n="recipeGrpTitle">配方</div>
         <div class="kv">
           <div class="k" data-i18n="totalLiquorColLabel">總浴液量</div><div class="v" id="p-liquor">–</div>
-          <div class="k" data-i18n="saltDoseColLabel">電解質用量</div><div class="v" id="p-salt">–</div>
-          <div class="k" data-i18n="saltTotalColLabel">電解質總量</div><div class="v" id="p-saltTotal">–</div>
+          <div class="k" data-i18n="saltDoseColLabel">芒硝用量</div><div class="v" id="p-salt">–</div>
+          <div class="k" data-i18n="saltTotalColLabel">芒硝總量</div><div class="v" id="p-saltTotal">–</div>
           <div class="k" data-i18n="fixTimeLabel">固著時間</div><div class="v" id="p-fixTime">–</div>
         </div>
         <div class="kv" id="p-alkaliRows" style="margin-top:8px;"></div>
@@ -1842,7 +1842,7 @@
 
 <footer class="app-footer no-print">
   <a href="https://everlight-ccbu.com/" target="_blank" rel="noopener">everlight-ccbu.com</a>
-  <div class="app-version">v2026.09.12</div>
+  <div class="app-version">v2026.09.24</div>
 </footer>
 
 <script src="./data.js"></script>
