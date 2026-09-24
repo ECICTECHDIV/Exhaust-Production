@@ -7,20 +7,37 @@
 
 /* ============ 資料表 ============ */
 
-// 芒硝(Na2SO4)比重對照表 [比重, 濃度g/L]
+// 鹽種比重對照表：SG_TABLE[鹽種][溫度] = [[比重, 濃度g/L], ...]
+// 每種鹽種各自可用的量測溫度不同，見下面 SALT_TYPE_TEMPS。
+//
+// ── 芒硝 (Glauber's Salt, Na2SO4) ──
 // 40°C：10~100 g/L直接取自現場實測紙本紀錄「40°C 的芒硝比重表」（每5 g/L一筆，95 g/L為90/100兩點內插）。
 //   表列到100 g/L為止，不外插——工具實際會用到的目標芒硝濃度上限只到80 g/L
 //   (EVERZOL_TABLE最高6.0%以上那一列)，100以上沒有實測依據，超出範圍就不猜了。
-// 60°C／80°C：40°C實測表無法直接沿用（同濃度下，溫度愈高、比重愈低），
-//   採「純水熱膨脹校正量」估算：查表得純水於40/60/80°C的密度分別為0.99224/0.98324/0.97183 g/cm3，
-//   相同濃度下的比重降幅以純水降幅估算（此濃度範圍內以水為主，鹽本身熱膨脹的差異可忽略）：
-//   60°C ≈ 40°C比重 − 0.0090；80°C ≈ 40°C比重 − 0.0204。
-//   此為工程近似值，非實測，實際芒硝溶液在此溫度區間可能有自身的異常行為(如32.4°C附近的
-//   十水合物⇄無水物相變)，跟純水降幅不完全一致，建議之後有機會用比重計實測60°C/80°C芒硝液校正取代。
+// 60°C／80°C：後來比對到公司內部的「浸染試染配方浴比計算表」Excel，裡面在20 g/L與90 g/L
+//   兩點有永光自己認定的標準校正值（40/60/80°C都有），且這兩點在40°C跟現場實測紙本完全吻合，
+//   代表這份Excel跟紙本是同一套官方標準值——所以60°C/80°C直接採用這份Excel反推出來的固定
+//   校正量（比純水熱膨脹理論推算更準確）：
+//   60°C = 40°C比重 − 0.008；80°C = 40°C比重 − 0.018。
+//
+// ── 粗鹽／鹽巴 (Common Salt, NaCl) ──
+// 尚未取得現場實測比重表，也沒有像芒硝那份Excel一樣可信的公司內部標準值可用（原始Excel裡雖然
+// 也有「粗鹽 40/50/60°C」欄位，但公式寫錯，直接複製貼上參照到芒硝80°C那欄的錨點，數字不可信，
+// 不能拿來用）。這裡先用食鹽水的公開文獻密度數據（20°C）搭配純水熱膨脹校正量抓出40/50/60°C
+// 的粗略估計值，讓鹽種切換功能可以先跑起來，但這組數字沒有像芒硝表那樣被驗證過，
+// 準確度未知，之後有機會請務必用比重計實測、或找一份跟芒硝那張一樣的紙本對照表來取代。
+const SALT_TYPE_TEMPS = { glauber:[40,60,80], commonSalt:[40,50,60] };
 const SG_TABLE = {
-  40: [[1.0035,10],[1.0075,15],[1.012,20],[1.016,25],[1.02,30],[1.024,35],[1.0285,40],[1.0325,45],[1.0365,50],[1.0405,55],[1.045,60],[1.049,65],[1.053,70],[1.0575,75],[1.0615,80],[1.0655,85],[1.07,90],[1.074,95],[1.078,100]],
-  60: [[0.9945,10],[0.9985,15],[1.003,20],[1.007,25],[1.011,30],[1.015,35],[1.0195,40],[1.0235,45],[1.0275,50],[1.0315,55],[1.036,60],[1.04,65],[1.044,70],[1.0485,75],[1.0525,80],[1.0565,85],[1.061,90],[1.065,95],[1.069,100]],
-  80: [[0.9831,10],[0.9871,15],[0.9916,20],[0.9956,25],[0.9996,30],[1.0036,35],[1.0081,40],[1.0121,45],[1.0161,50],[1.0201,55],[1.0246,60],[1.0286,65],[1.0326,70],[1.0371,75],[1.0411,80],[1.0451,85],[1.0496,90],[1.0536,95],[1.0576,100]]
+  glauber: {
+    40: [[1.0035,10],[1.0075,15],[1.012,20],[1.016,25],[1.02,30],[1.024,35],[1.0285,40],[1.0325,45],[1.0365,50],[1.0405,55],[1.045,60],[1.049,65],[1.053,70],[1.0575,75],[1.0615,80],[1.0655,85],[1.07,90],[1.074,95],[1.078,100]],
+    60: [[0.9955,10],[0.9995,15],[1.004,20],[1.008,25],[1.012,30],[1.016,35],[1.0205,40],[1.0245,45],[1.0285,50],[1.0325,55],[1.037,60],[1.041,65],[1.045,70],[1.0495,75],[1.0535,80],[1.0575,85],[1.062,90],[1.066,95],[1.07,100]],
+    80: [[0.9855,10],[0.9895,15],[0.994,20],[0.998,25],[1.002,30],[1.006,35],[1.0105,40],[1.0145,45],[1.0185,50],[1.0225,55],[1.027,60],[1.031,65],[1.035,70],[1.0395,75],[1.0435,80],[1.0475,85],[1.052,90],[1.056,95],[1.06,100]]
+  },
+  commonSalt: {
+    40: [[0.9993,10],[1.0027,15],[1.0061,20],[1.0094,25],[1.0128,30],[1.0162,35],[1.0196,40],[1.023,45],[1.0263,50],[1.0297,55],[1.0331,60],[1.0365,65],[1.0398,70],[1.0432,75],[1.0466,80],[1.05,85],[1.0534,90],[1.0567,95],[1.0601,100]],
+    50: [[0.9951,10],[0.9985,15],[1.0019,20],[1.0052,25],[1.0086,30],[1.012,35],[1.0154,40],[1.0188,45],[1.0221,50],[1.0255,55],[1.0289,60],[1.0323,65],[1.0356,70],[1.039,75],[1.0424,80],[1.0458,85],[1.0492,90],[1.0525,95],[1.0559,100]],
+    60: [[0.9903,10],[0.9937,15],[0.9971,20],[1.0004,25],[1.0038,30],[1.0072,35],[1.0106,40],[1.014,45],[1.0173,50],[1.0207,55],[1.0241,60],[1.0275,65],[1.0308,70],[1.0342,75],[1.0376,80],[1.041,85],[1.0444,90],[1.0477,95],[1.0511,100]]
+  }
 };
 
 // Everzol 染料染色濃度及鹽鹼用量表 (A-5頁)
@@ -129,10 +146,13 @@ const TRANSLATIONS = {
     auxTitle:"助劑秤量表", auxSub:"每項可選「%OWF（依布重）」或「g/L・ml/L（依浴液量）」，自動換算實際用量", addAuxBtn:"＋ 新增助劑",
     bathTitle:"浴量／浴比校正", bathSub:"依現場實測比重回推缸內實際水量，計算還需補水量",
     bathRefTitle:"配方參考值",
-    targetSaltDoseLabel:"目標芒硝濃度", targetSaltTotalLabel:"目標芒硝重量", targetWaterLabel:"目標總浴量", targetSGLabel:"目標理論比重",
+    saltTypeLabel:"校正用鹽種", saltTypeGlauberBtn:"芒硝", saltTypeCommonBtn:"粗鹽／鹽巴",
+    commonSaltWarnNote:"目前粗鹽比重表是用公開文獻密度數據推算的估計值，還沒有現場實測或公司內部標準值驗證過，準確度未知，僅供參考，請盡量以芒硝或現場實測數據為準。",
+    targetSaltDoseLabel:"目標鹽劑濃度", targetSaltTotalLabel:"目標鹽劑重量", targetWaterLabel:"目標總浴量", targetSGLabel:"目標理論比重",
     tempLabel:"比重量測溫度",
     measuredSGLabel:"量測比重(手動輸入)", measuredSGPlaceholder:"請輸入實測比重",
-    sgConcLabel:"缸內芒硝濃度", actualWaterLabel:"缸內實際水量", calibSpaceLabel:"剩餘補水空間", calibSaltLabel:"校正芒硝濃度", startLevelLabel:"目前液位比例", calibTag:"校正：",
+    sgConcLabel:"缸內鹽劑濃度", actualWaterLabel:"缸內實際水量", calibSpaceLabel:"剩餘補水空間", calibSaltLabel:"校正鹽劑濃度", startLevelLabel:"目前液位比例", calibTag:"校正：",
+    optionDrainLabel:"方案①排水＋補鹽", optionAddOnlyLabel:"方案②只補鹽",
     showSgTable:"顯示比重對照表", hideSgTable:"隱藏比重對照表", sgCol:"比重", concCol:"濃度g/l",
     speedTitle:"布速參考區間", speedSub:"參考值，依現場實際機台校正後可自行調整", speedWipNote:"此頁功能尚未定案、建構中，數字僅供參考，請勿直接用於現場設定。",
     machineTypeLabel:"染色機類型", machineWinch:"繩染／絞盤（舊式，無噴嘴）", machineOverflow:"溢流機",
@@ -183,10 +203,13 @@ const TRANSLATIONS = {
     auxTitle:"Auxiliary Dosing Table", auxSub:"Each row can use %OWF (of fabric weight) or g/L · ml/L (of liquor) — actual dose is converted automatically", addAuxBtn:"+ Add auxiliary",
     bathTitle:"Bath Volume / Liquor Ratio Correction", bathSub:"Back-calculate the actual tank water volume from a measured specific gravity, and the make-up water needed",
     bathRefTitle:"Recipe reference values",
-    targetSaltDoseLabel:"Target Glauber's salt conc.", targetSaltTotalLabel:"Target Glauber's salt weight", targetWaterLabel:"Target total liquor", targetSGLabel:"Target theoretical SG",
+    saltTypeLabel:"Salt type for calibration", saltTypeGlauberBtn:"Glauber's Salt", saltTypeCommonBtn:"Common Salt",
+    commonSaltWarnNote:"The Common Salt SG table is currently an estimate derived from published density data, not yet verified against field measurements or an internal company standard — accuracy unknown. Prefer Glauber's Salt or field-measured data where possible.",
+    targetSaltDoseLabel:"Target salt conc.", targetSaltTotalLabel:"Target salt weight", targetWaterLabel:"Target total liquor", targetSGLabel:"Target theoretical SG",
     tempLabel:"SG reading temperature",
     measuredSGLabel:"Measured SG (manual entry)", measuredSGPlaceholder:"Enter measured SG",
     sgConcLabel:"Concentration in tank", actualWaterLabel:"Actual tank water", calibSpaceLabel:"Remaining fill space", calibSaltLabel:"Correct salt conc.", startLevelLabel:"Current fill level", calibTag:"Calibration: ",
+    optionDrainLabel:"Option ① Drain + add salt", optionAddOnlyLabel:"Option ② Add salt only",
     showSgTable:"Show specific-gravity table", hideSgTable:"Hide specific-gravity table", sgCol:"SG", concCol:"Conc. g/l",
     speedTitle:"Fabric Speed Reference", speedSub:"Reference values — calibrate to your actual machine on-site", speedWipNote:"This page is still under construction — numbers are for reference only, do not use directly for machine settings.",
     machineTypeLabel:"Machine type", machineWinch:"Rope/Winch (conventional, no nozzle)", machineOverflow:"Overflow machine",

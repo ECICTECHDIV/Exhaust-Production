@@ -12,9 +12,9 @@ function lookupEverzol(owf){
   return EVERZOL_TABLE[EVERZOL_TABLE.length-1];
 }
 
-// 線性內插查表：由比重回推濃度 (g/L)
-function interpConcentration(temp, sg){
-  const table = SG_TABLE[temp];
+// 線性內插查表：由比重回推濃度 (g/L)。saltType 不給的話預設用目前狀態選的鹽種。
+function interpConcentration(temp, sg, saltType){
+  const table = (SG_TABLE[saltType || state.saltType] || {})[temp];
   if(!table || sg === null || isNaN(sg)) return null;
   if(sg <= table[0][0]) return table[0][1];
   if(sg >= table[table.length-1][0]) return table[table.length-1][1];
@@ -29,9 +29,9 @@ function interpConcentration(temp, sg){
   return null;
 }
 
-// 反查：由濃度 (g/L) 回推比重（interpConcentration 的反函數）
-function inverseSGFromConcentration(temp, targetConc){
-  const table = SG_TABLE[temp];
+// 反查：由濃度 (g/L) 回推比重（interpConcentration 的反函數）。saltType 同上。
+function inverseSGFromConcentration(temp, targetConc, saltType){
+  const table = (SG_TABLE[saltType || state.saltType] || {})[temp];
   if(!table || targetConc === null || isNaN(targetConc)) return null;
   if(targetConc <= table[0][1]) return table[0][0];
   if(targetConc >= table[table.length-1][1]) return table[table.length-1][0];
@@ -71,12 +71,13 @@ const state = {
   fabricType: "unmerc",
   alkaliMode: "alone",
   temp: 40,
+  saltType: "glauber",          // 浴量校正頁用哪種鹽的比重表：glauber(芒硝，預設) / commonSalt(粗鹽／鹽巴)
   machineType: "jet",
   weightGrade: "light",
   ratioGrade: "mid",
   measureMode: "direct",
   targetWaterManual: false,     // 「目標總浴量」是否被使用者手動改過（改過就不再被配方卡覆蓋）
-  targetSaltDoseManual: false   // 「目標芒硝濃度」是否被使用者手動改過
+  targetSaltDoseManual: false   // 「目標鹽劑濃度」是否被使用者手動改過
 };
 
 
@@ -212,7 +213,32 @@ bindSeg("alkaliModeSeg", val=>{
   document.getElementById("alkaliTspGroup").style.display = val==="tsp" ? "block":"none";
   recalcAll();
 });
-bindSeg("tempSeg", val=>{ state.temp = Number(val); updateBathReference(); });
+// 比重量測溫度 seg：可選溫度隨鹽種而變（芒硝40/60/80°C；粗鹽40/50/60°C——見 SALT_TYPE_TEMPS），
+// 所以按鈕是動態產生的，每次切換鹽種都要重新產生 + 重新綁定點擊事件
+function renderTempSeg(){
+  const seg = document.getElementById("tempSeg");
+  const temps = SALT_TYPE_TEMPS[state.saltType] || SALT_TYPE_TEMPS.glauber;
+  if(!temps.includes(state.temp)) state.temp = temps[0];
+  seg.innerHTML = temps.map(t=>`<button data-val="${t}" class="${t===state.temp?'on':''}">${t}°C</button>`).join("");
+  seg.querySelectorAll("button").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      seg.querySelectorAll("button").forEach(b=>b.classList.remove("on"));
+      btn.classList.add("on");
+      state.temp = Number(btn.dataset.val);
+      updateBathReference();
+    });
+  });
+}
+renderTempSeg();
+
+bindSeg("saltTypeSeg", val=>{
+  state.saltType = val;
+  document.getElementById("commonSaltWarnNote").style.display = val === "commonSalt" ? "" : "none";
+  renderTempSeg();
+  sgTableRendered = false; // 比重表內容跟鹽種有關，換鹽種要重畫
+  if(document.getElementById("sgTableWrap").style.display !== "none") renderSgTable();
+  updateBathReference();
+});
 bindSeg("weightGradeSeg", val=>{ state.weightGrade = val; recomputeSpeed(); });
 document.getElementById("machineTypeSel").addEventListener("change", (e)=>{
   state.machineType = e.target.value;
@@ -250,15 +276,19 @@ document.getElementById("toggleRefTable").addEventListener("click", (e)=>{
 let sgTableRendered = false;
 function renderSgTable(){
   if(sgTableRendered) return;
-  const tbody = document.getElementById("sgTableBody");
-  const rows40 = SG_TABLE[40], rows60 = SG_TABLE[60], rows80 = SG_TABLE[80];
-  const n = Math.max(rows40.length, rows60.length, rows80.length);
+  const temps = SALT_TYPE_TEMPS[state.saltType] || SALT_TYPE_TEMPS.glauber;
+  [0,1,2].forEach(i=>{
+    document.getElementById("sgTableHead"+i).textContent = temps[i] ? temps[i]+"°C" : "";
+  });
+  const table = SG_TABLE[state.saltType] || SG_TABLE.glauber;
+  const rowsA = table[temps[0]] || [], rowsB = table[temps[1]] || [], rowsC = table[temps[2]] || [];
+  const n = Math.max(rowsA.length, rowsB.length, rowsC.length);
   let html = "";
   for(let i=0;i<n;i++){
-    const a = rows40[i], b = rows60[i], c = rows80[i];
+    const a = rowsA[i], b = rowsB[i], c = rowsC[i];
     html += `<tr><td>${a?a[0]:""}</td><td>${a?a[1]:""}</td><td>${b?b[0]:""}</td><td>${b?b[1]:""}</td><td>${c?c[0]:""}</td><td>${c?c[1]:""}</td></tr>`;
   }
-  tbody.innerHTML = html;
+  document.getElementById("sgTableBody").innerHTML = html;
   sgTableRendered = true;
 }
 document.getElementById("toggleSgTable").addEventListener("click", (e)=>{
@@ -566,22 +596,30 @@ function recomputeBath(){
   document.getElementById("startLevelDetailOut").textContent = startLevel!==null ? `${fmt(actualWater,0)}/${fmt(targetWater,0)}L` : "–";
 
   // 校正：水不夠（缸內實際水量 < 目標總浴量）→ 顯示還剩多少補水空間；
-  // 水太多（超過目標總浴量）→ 沒辦法把水抽掉，只能加芒硝把濃度拉回目標，
-  // 這時改算「要把濃度拉回目標芒硝濃度、以現在實際水量為準，還要再加多少芒硝」
+  // 水太多（超過目標總浴量）→ 沒辦法把水抽掉，這時給兩個方案並排顯示，讓現場自己選：
+  //   方案①排水＋補鹽：把超出的水排掉、補回「連同排水一起流失的鹽」，浴比跟濃度都能完全復原成原設定
+  //   方案②只補鹽：不排水，直接加鹽把濃度拉回目標，浴比會變成比較稀的新比例（不用等待排水，現場更快）
   const labelEl = document.getElementById("makeupWaterLabelEl");
   const valueEl = document.getElementById("makeupWaterOut");
+  const singleWrap = document.getElementById("calibSingleWrap");
+  const optionsWrap = document.getElementById("calibOptionsWrap");
   const note = document.getElementById("bathNote");
   const remaining = (actualWater !== null && targetWater>0) ? (targetWater - actualWater) : null;
+  const fabricWeightKgForRatio = Number(document.getElementById("fabricWeight").value) || 0;
 
   if(remaining === null){
+    singleWrap.style.display = "";
+    optionsWrap.style.display = "none";
     labelEl.textContent = T("calibSpaceLabel");
     valueEl.innerHTML = "–";
     valueEl.style.color = "";
     note.className = "note";
     note.textContent = state.lang === "en"
-      ? "Please fill in the target total liquor and target Glauber's salt concentration above, then enter the measured specific gravity."
-      : "請先在上方填入目標總浴量、目標芒硝濃度，並輸入量測比重。";
+      ? "Please fill in the target total liquor and target salt concentration above, then enter the measured specific gravity."
+      : "請先在上方填入目標總浴量、目標鹽劑濃度，並輸入量測比重。";
   }else if(remaining >= 0){
+    singleWrap.style.display = "";
+    optionsWrap.style.display = "none";
     labelEl.textContent = T("calibSpaceLabel");
     valueEl.innerHTML = `${fmt(remaining,0)}<small>L</small>`;
     valueEl.style.color = "";
@@ -590,17 +628,31 @@ function recomputeBath(){
       ? `About ${fmt(remaining,0)} L of room left in the tank — enough to top up with water or dissolve alkali in.`
       : `還有約 ${fmt(remaining,0)} L 空間，可以用來補水或留給純鹼溶解使用。`;
   }else{
-    // 水已經超過目標——以現在實際水量重算一次要達到目標濃度總共需要多少芒硝，
-    // 減掉原本已經下的目標芒硝重量，就是還要再加多少
+    // 水已經超過目標——
+    // 方案②：以現在實際水量重算一次要達到目標濃度總共需要多少鹽，減掉原本已經下的目標鹽重量，就是還要再加多少
     const neededSaltKg = targetSaltDose * actualWater / 1000;
     const extraSaltKg = Math.max(0, neededSaltKg - targetSaltKg);
+    const newRatio = fabricWeightKgForRatio>0 ? actualWater/fabricWeightKgForRatio : null;
+    // 方案①：把超出目標的水（drainVolume）排掉，這些水裡也溶了鹽（用現在缸內濃度conc算），
+    // 排掉的同時鹽也跟著流失，所以要把這部分流失的鹽補回來，浴比跟濃度就會完全恢復成原設定
+    const drainVolume = Math.abs(remaining);
+    const saltLostInDrain = (conc !== null) ? (drainVolume * conc / 1000) : null;
+
+    singleWrap.style.display = "none";
+    optionsWrap.style.display = "";
     labelEl.textContent = T("calibSaltLabel");
-    valueEl.innerHTML = `${fmt(extraSaltKg,1)}<small>kg</small>`;
-    valueEl.style.color = "var(--danger)";
+    document.getElementById("calibOption1Out").innerHTML = saltLostInDrain !== null
+      ? (state.lang === "en"
+          ? `Drain ${fmt(drainVolume,0)} L + add ${fmt(saltLostInDrain,1)} kg salt`
+          : `排水 ${fmt(drainVolume,0)} L ＋ 補鹽 ${fmt(saltLostInDrain,1)} kg`)
+      : "–";
+    document.getElementById("calibOption2Out").innerHTML = (state.lang === "en")
+      ? `Add ${fmt(extraSaltKg,1)} kg salt only${newRatio!==null ? ` (ratio becomes 1:${fmt(newRatio,1)})` : ""}`
+      : `只加鹽 ${fmt(extraSaltKg,1)} kg${newRatio!==null ? `（浴比會變成 1:${fmt(newRatio,1)}）` : ""}`;
     note.className = "note danger";
     note.textContent = state.lang === "en"
-      ? `Water is about ${fmt(Math.abs(remaining),0)} L over target — can't remove water, so add approximately ${fmt(extraSaltKg,1)} kg more Glauber's salt to bring the concentration back to target.`
-      : `水量已經超出目標約 ${fmt(Math.abs(remaining),0)} L，沒辦法抽掉水，建議再加芒硝約 ${fmt(extraSaltKg,1)} kg，把濃度拉回目標。`;
+      ? `Water is about ${fmt(drainVolume,0)} L over target. Option ① drains the excess and adds back the salt lost with it — this fully restores the original ratio and concentration. Option ② skips draining and just tops up the salt, which is faster on-site but leaves a slightly more dilute ratio.`
+      : `水量已經超出目標約 ${fmt(drainVolume,0)} L。方案①排掉超出的水、並補回連同排水一起流失的鹽，浴比與濃度可以完全恢復成原設定；方案②不排水、直接補鹽，現場動作較快，但浴比會變得比較稀。`;
   }
 }
 
@@ -1510,6 +1562,7 @@ function collectRecipeData(){
     ratioGrade: state.ratioGrade,
     ratioGradeManual: !!state.ratioGradeManual,
     reelDiameter: document.getElementById("reelDiameter").value,
+    saltType: state.saltType,
     temp: state.temp,
     targetWaterInput: document.getElementById("targetWaterInput").value,
     targetWaterManual: !!state.targetWaterManual,
@@ -1613,8 +1666,16 @@ function applyRecipeData(data){
   document.querySelectorAll("#ratioGradeSeg button").forEach(b=>b.classList.toggle("on", b.dataset.val === state.ratioGrade));
   document.getElementById("reelDiameter").value = data.reelDiameter || "";
 
+  // 先復原鹽種，再用 renderTempSeg() 依鹽種重建溫度選項，最後才套用存檔的溫度，
+  // 不然舊配方存的溫度可能不在新鹽種的可選清單裡（例如粗鹽沒有80°C）
+  state.saltType = data.saltType || "glauber";
+  document.querySelectorAll("#saltTypeSeg button").forEach(b=>b.classList.toggle("on", b.dataset.val === state.saltType));
+  document.getElementById("commonSaltWarnNote").style.display = state.saltType === "commonSalt" ? "" : "none";
+  sgTableRendered = false;
+  if(document.getElementById("sgTableWrap").style.display !== "none") renderSgTable();
+
   state.temp = data.temp || 40;
-  document.querySelectorAll("#tempSeg button").forEach(b=>b.classList.toggle("on", Number(b.dataset.val) === state.temp));
+  renderTempSeg();
 
   // 浴量校正頁的手動覆寫狀態——要先設好旗標，updateBathReference()/recomputeBath() 才不會
   // 在載入配方後又把使用者原本手動填的值蓋掉

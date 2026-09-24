@@ -423,6 +423,23 @@
     color:var(--amber);
     font-weight:800;
   }
+  /* 水量超過目標時，校正格改顯示兩個方案並排（排水+補鹽 vs 只補鹽），
+     手機窄螢幕疊成一行一個，桌面版兩欄並排比較 */
+  .calib-options{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:10px;
+    margin-top:10px;
+  }
+  @media (min-width:480px){
+    .calib-options{grid-template-columns:1fr 1fr;}
+  }
+  .calib-option{
+    background:rgba(255,255,255,.55);
+    border-radius:var(--radius-sm);
+    padding:8px 10px;
+  }
+  .calib-option .k{margin-bottom:2px;}
 
   .note{
     font-size:.85rem;
@@ -1394,6 +1411,15 @@
     <div class="card">
       <h2 data-i18n="bathTitle">浴量／浴比校正</h2>
 
+      <div class="field">
+        <label data-i18n="saltTypeLabel">校正用鹽種</label>
+        <div class="seg" id="saltTypeSeg">
+          <button data-val="glauber" class="on" data-i18n="saltTypeGlauberBtn">芒硝</button>
+          <button data-val="commonSalt" data-i18n="saltTypeCommonBtn">粗鹽／鹽巴</button>
+        </div>
+      </div>
+      <div class="note warn" id="commonSaltWarnNote" style="display:none;" data-i18n="commonSaltWarnNote"></div>
+
       <div class="note" style="margin-bottom:10px;" data-i18n="bathRefTitle">配方參考值</div>
       <div class="result-grid-4">
         <div class="result-box">
@@ -1405,12 +1431,12 @@
           <div class="k" id="recipeSourceInfo" style="display:none; margin-top:6px; font-weight:500;"></div>
         </div>
         <div class="result-box">
-          <div class="k" data-i18n="targetSaltDoseLabel">目標芒硝濃度</div>
+          <div class="k" id="targetSaltDoseLabelEl" data-i18n="targetSaltDoseLabel">目標鹽劑濃度</div>
           <div class="unit-input">
             <input type="number" id="targetSaltDoseInput" min="0" step="0.1">
             <span>g/L</span>
           </div>
-          <div class="k" style="margin-top:8px;" data-i18n="targetSaltTotalLabel">目標芒硝重量</div>
+          <div class="k" id="targetSaltTotalLabelEl" style="margin-top:8px;" data-i18n="targetSaltTotalLabel">目標鹽劑重量</div>
           <div class="v small-text" id="targetSaltTotalOut">–<small>kg</small></div>
         </div>
         <div class="result-box">
@@ -1432,7 +1458,7 @@
         <div style="max-height:340px; overflow-y:auto; margin-top:8px; border:1px solid var(--border); border-radius:8px;">
           <table class="ref" style="margin-top:0;">
             <thead>
-              <tr><th colspan="2">40°C</th><th colspan="2">60°C</th><th colspan="2">80°C</th></tr>
+              <tr><th colspan="2" id="sgTableHead0">40°C</th><th colspan="2" id="sgTableHead1">60°C</th><th colspan="2" id="sgTableHead2">80°C</th></tr>
               <tr><th data-i18n="sgCol">比重</th><th data-i18n="concCol">濃度g/l</th><th data-i18n="sgCol">比重</th><th data-i18n="concCol">濃度g/l</th><th data-i18n="sgCol">比重</th><th data-i18n="concCol">濃度g/l</th></tr>
             </thead>
             <tbody id="sgTableBody"></tbody>
@@ -1450,7 +1476,7 @@
 
       <div class="result-grid-4">
         <div class="result-box">
-          <div class="k" data-i18n="actualWaterLabel">缸內實際水量</div>
+          <div class="k" id="actualWaterLabelEl" data-i18n="actualWaterLabel">缸內實際水量</div>
           <div class="v" id="actualWaterOut">–<small>L</small></div>
         </div>
         <div class="result-box">
@@ -1459,12 +1485,24 @@
           <div class="v small-text" id="startLevelDetailOut">–</div>
         </div>
         <div class="result-box">
-          <div class="k" data-i18n="sgConcLabel">缸內芒硝濃度</div>
+          <div class="k" id="sgConcLabelEl" data-i18n="sgConcLabel">缸內鹽劑濃度</div>
           <div class="v" id="sgConcOut">–<small>g/L</small></div>
         </div>
-        <div class="result-box calibration">
+        <div class="result-box calibration wide">
           <div class="k"><span class="calib-tag" data-i18n="calibTag">校正：</span><span id="makeupWaterLabelEl">剩餘補水空間</span></div>
-          <div class="v" id="makeupWaterOut">–<small>L</small></div>
+          <div id="calibSingleWrap">
+            <div class="v" id="makeupWaterOut">–<small>L</small></div>
+          </div>
+          <div class="calib-options" id="calibOptionsWrap" style="display:none;">
+            <div class="calib-option">
+              <div class="k" data-i18n="optionDrainLabel">方案①排水＋補鹽</div>
+              <div class="v small-text" id="calibOption1Out">–</div>
+            </div>
+            <div class="calib-option">
+              <div class="k" data-i18n="optionAddOnlyLabel">方案②只補鹽</div>
+              <div class="v small-text" id="calibOption2Out">–</div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="note" id="bathNote"></div>
